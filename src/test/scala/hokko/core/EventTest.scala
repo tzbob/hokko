@@ -17,8 +17,8 @@ class EventTest extends FunSpec with Checkers {
   def mkOccurrences[A](ev: Event[A])(performSideEffects: Engine => Unit): List[A] = {
     val engine = Engine.compile(ev)
     val occurrences = ListBuffer.empty[A]
-    val subscription = engine.subscribeForEvent(ev) {
-      _.foreach(occurrences += _)
+    val subscription = engine.subscribeForPulses {
+      _(ev).foreach(occurrences += _)
     }
     performSideEffects(engine)
     subscription.cancel()

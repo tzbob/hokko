@@ -2,18 +2,20 @@ package hokko.core
 
 import scala.annotation.tailrec
 import scala.language.existentials
+import scalaz.Need
 import scalaz.syntax.monad._
 import shapeless.HMap
 
 class Engine private (exitNodes: Seq[Push[_]]) {
-  private[this] var handlers = Set.empty[((Push[A] => Option[A]) => Unit) forSome { type A }]
+  private[this] var handlers = Set.empty[Pulses => Unit]
   private[this] var memoTable = HMap.empty[TickContext.StateRelation]
+  private[this] def currentContext() = TickContext.fromMemoTable(memoTable)
 
   private val nodeToDescendants = Engine.buildDescendants(exitNodes)
   private val orderedNodes = Engine.sortedNodes(exitNodes, nodeToDescendants)
 
   def fire(pulses: (EventSource[A], A) forSome { type A }*): Unit = this.synchronized {
-    val startContext = pulses.foldLeft(TickContext.fromMemoTable(memoTable)) {
+    val startContext = pulses.foldLeft(currentContext()) {
       case (acc, (src, x)) => acc.addPulse(src.node, x)
     }
     propagate(startContext)
@@ -22,36 +24,38 @@ class Engine private (exitNodes: Seq[Push[_]]) {
   private[this] def propagate(startContext: TickContext): Unit = {
     val endContext = propagationResults(startContext)
     handlers.foreach { handler =>
-      handler(endContext.getPulse _)
+      handler(new Pulses(endContext))
     }
     memoTable = endContext.memoTable
   }
 
   private[this] def propagationResults(startContext: TickContext): TickContext =
-    // TODO: to shortcut propagation as much as possible a node's action can be divided into
-    // reactions to nosiy and silent updates
+    // TODO (if this is a bottleneck): to shortcut propagation as much as possible
+    // a node's action can be divided into reactions to nosiy and silent updates
     // - propagation contexts need; queuedForSilent: Node[_] => Boolean, queuedForNoisy: Node[_] => Boolean
     // - nodes need; reactToSilent(TickContext): Update[TickContext] and reactToNoisy ...
     orderedNodes.foldLeft(startContext) { (context, node) =>
       node.updateContext(context).getOrElse(context)
     }
 
-  class Subscription[A](handler: (Push[A] => Option[A]) => Unit) {
+  def askCurrentValues(): Values = new Values(propagationResults(currentContext()))
+  def subscribeForPulses[A](handler: Pulses => Unit): Subscription[A] = {
+    handlers += handler
+    new Subscription(handler)
+  }
+
+  class Subscription[A] private[Engine] (handler: Pulses => Unit) {
     def cancel(): Unit = handlers -= handler
   }
 
-  def subscribeForEvent[A](event: Event[A])(handler: Option[A] => Unit): Subscription[A] =
-    subscribeForEvents { fE => handler(fE(event)) }
-
-  def subscribeForEvents[A](handler: (Event[A] => Option[A]) => Unit): Subscription[A] = {
-    val wrapNodeFn = (fN: Push[A] => Option[A]) => (e: Event[A]) => fN(e.node)
-    val unwrappedHandler = wrapNodeFn.andThen(handler)
-    subscribe(unwrappedHandler)
+  class Values private[Engine] (context: TickContext) {
+    def apply[A](beh: Behavior[A]): Option[Need[A]] =
+      context.getThunk(beh.node)
   }
 
-  private[this] def subscribe[A](handler: (Push[A] => Option[A]) => Unit): Subscription[A] = {
-    handlers += handler
-    new Subscription(handler)
+  class Pulses private[Engine] (context: TickContext) {
+    def apply[A](ev: Event[A]): Option[A] =
+      context.getPulse(ev.node)
   }
 
 }
@@ -84,5 +88,4 @@ object Engine {
     val nodes = allNodes(start.toList, Set.empty)
     nodes.toList.sortBy(_.level)
   }
-
 }
