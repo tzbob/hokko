@@ -1,9 +1,8 @@
 package hokko.core
 
-import scalaz.Need
+import scalaz.{Functor, Need}
 import scalaz.std.option._
 import scalaz.syntax.applicative._
-import scalaz.Functor
 
 trait Event[A] {
   private[hokko] val node: Push[A]

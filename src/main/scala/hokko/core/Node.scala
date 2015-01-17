@@ -10,8 +10,7 @@ sealed trait Node[+A] {
     if (dependencies.isEmpty) 0
     else dependencies.map(_.level).max + 1
 
-  def updateContext(context: TickContext): Option[TickContext] =
-    None
+  def updateContext(context: TickContext): Option[TickContext] = None
 }
 
 trait Pull[A] extends Node[A] {

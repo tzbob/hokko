@@ -3,10 +3,11 @@ package hokko.core
 import scala.annotation.tailrec
 import scala.language.existentials
 import scalaz.syntax.monad._
+import shapeless.HMap
 
 class Engine private (exitNodes: Seq[Push[_]]) {
   private[this] var handlers = Set.empty[((Push[A] => Option[A]) => Unit) forSome { type A }]
-  private[this] var memoTable = KindMap.empty[State]
+  private[this] var memoTable = HMap.empty[TickContext.StateRelation]
 
   private val nodeToDescendants = Engine.buildDescendants(exitNodes)
   private val orderedNodes = Engine.sortedNodes(exitNodes, nodeToDescendants)

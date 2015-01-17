@@ -25,8 +25,8 @@ class EventTest extends FunSpec with Checkers {
     occurrences.toList
   }
 
-  describe("Event") {
-    describe("that unifies other events") {
+  describe("Events") {
+    describe("that unify other events using behaviors f1, f2 and f3") {
       val src1 = Event.source[Int]
       val src2 = Event.source[Double]
 
