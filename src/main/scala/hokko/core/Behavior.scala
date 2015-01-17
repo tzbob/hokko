@@ -21,6 +21,7 @@ trait Behavior[A] {
 
 object Behavior {
   def constant[A](x: A): Behavior[A] = DiscreteBehavior.constant(x)
+  def byPulling[A](f: () => A): Behavior[A] = Polling(f)
 
   private case class Polling[A](f: () => A) extends Behavior[A] {
     val node = new Pull[A] {

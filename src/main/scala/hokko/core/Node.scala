@@ -4,7 +4,9 @@ import scalaz.Need
 
 sealed trait Node[+A] {
   val dependencies: List[Node[_]]
-  val level: Int =
+
+  // lazy to give implementations the chance to fill in dependencies
+  lazy val level: Int =
     if (dependencies.isEmpty) 0
     else dependencies.map(_.level).max + 1
 
@@ -15,26 +17,26 @@ sealed trait Node[+A] {
 trait Pull[A] extends Node[A] {
   def thunk(context: TickContext): Need[A]
 
-  override def updateContext(context: TickContext): Option[TickContext] =
-    super.updateContext(context).map(_.addThunk(this, thunk(context)))
+  override def updateContext(context: TickContext): Option[TickContext] = {
+    val targetContext = super.updateContext(context).getOrElse(context)
+    Some(targetContext.addThunk(this, thunk(targetContext)))
+  }
 }
 
 trait Push[A] extends Node[A] {
   def pulse(context: TickContext): Option[A]
 
-  override def updateContext(context: TickContext): Option[TickContext] =
-    for {
-      newContext <- super.updateContext(context)
-      p <- pulse(newContext)
-    } yield newContext.addPulse(this, p)
+  override def updateContext(context: TickContext): Option[TickContext] = {
+    val targetContext = super.updateContext(context).getOrElse(context)
+    pulse(targetContext).map(targetContext.addPulse(this, _))
+  }
 }
 
 trait State[A] extends Node[A] {
   def state(context: TickContext): Option[A]
 
-  override def updateContext(context: TickContext): Option[TickContext] =
-    for {
-      newContext <- super.updateContext(context)
-      s <- state(context)
-    } yield newContext.addState(this, s)
+  override def updateContext(context: TickContext): Option[TickContext] = {
+    val targetContext = super.updateContext(context).getOrElse(context)
+    state(targetContext).map(targetContext.addState(this, _))
+  }
 }

@@ -23,6 +23,9 @@ class TickContext(
   }
 
   def pulsers: Set[Push[_]] = pulses.keys
+
+  override def toString =
+    s"TickContext(${pulses.toString}, ${memoTable.toString}, ${thunks.toString})"
 }
 
 object TickContext {

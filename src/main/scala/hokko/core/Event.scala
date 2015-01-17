@@ -13,7 +13,7 @@ trait Event[A] {
   def fold[B](initial: B)(f: (B, A) => B): DiscreteBehavior[B] =
     DiscreteBehavior.folded(this, initial, f)
 
-  def unionWith[B, C](b: Event[B])(f1: Behavior[A => C])(f2: Behavior[B => C])(f3: Behavior[(A, B) => C]): Event[C] =
+  def unionWithBehavior[B, C](b: Event[B], f1: Behavior[A => C], f2: Behavior[B => C], f3: Behavior[(A, B) => C]): Event[C] =
     Event.fromNode(Event.UnionWith(this, b, f1, f2, f3))
 
   def collectWithBehavior[B](fb: Behavior[A => Option[B]]): Event[B] =
@@ -38,16 +38,17 @@ object Event {
   private[core] def fromNode[A](n: Push[A]): Event[A] =
     new Event[A] { val node = n }
 
-  def source[A]: EventSource[A] = new EventSource[A] { val node = NeverPush[A]() }
-  def empty[A]: Event[A] = fromNode(NeverPush[A]())
+  def empty[A]: Event[A] = fromNode(new NeverPush[A]())
+  def source[A]: EventSource[A] = new EventSource[A] { val node = empty[A].node }
 
   // primitive node implementations
 
   private[core] def snapshotted[A, B](ev: Event[A => B], snappee: Behavior[A]): Event[B] =
     fromNode(SnapshotWith(ev, snappee))
 
-  // FIXME with variances this can be object Push[Nothing]
-  private case class NeverPush[A]() extends Push[A] {
+  // This can't be a case class, we're relying on pointer eq to manually place
+  // values of different types with different instances of `NeverPush`
+  private class NeverPush[A]() extends Push[A] {
     val dependencies = List.empty
     def pulse(context: TickContext): Option[A] = None
   }
@@ -71,7 +72,7 @@ object Event {
     fb2: Behavior[B => C],
     fb3: Behavior[(A, B) => C]
   ) extends Push[C] {
-    val dependencies = List(evA.node, evB.node)
+    val dependencies = List(evA.node, evB.node, fb1.node, fb2.node, fb3.node)
 
     def pulse(context: TickContext): Option[C] = {
       val aPulse = context.getPulse(evA.node)
