@@ -62,7 +62,7 @@ class EventTest extends FunSpec with Checkers with Matchers {
               engine.fire(src1 -> i)
             }
           }
-          occurrences.toList == ints.map(_.toString)
+          occurrences == ints.map(_.toString)
         }
       }
 
@@ -73,7 +73,7 @@ class EventTest extends FunSpec with Checkers with Matchers {
               engine.fire(src2 -> d)
             }
           }
-          occurrences.toList == doubles.map(_.toString)
+          occurrences == doubles.map(_.toString)
         }
       }
 
@@ -84,9 +84,49 @@ class EventTest extends FunSpec with Checkers with Matchers {
               case (i, d) => engine.fire(src1 -> i, src2 -> d)
             }
           }
-          occurrences.toList == intDoubles.map {
+          occurrences == intDoubles.map {
             case (i, d) => (i, d).toString
           }
+        }
+      }
+    }
+    describe("that are collected") {
+      val src = Event.source[Int]
+
+      it("should have no occurrences when collecting nothing") {
+        val collected = src.collect(_ => None)
+
+        check { (ints: List[Int]) =>
+          val occurrences = mkOccurrences(collected) { engine =>
+            ints.foreach(i => engine.fire(src -> i))
+          }
+          occurrences == List.empty
+        }
+      }
+
+      it("should have all occurrences doubled when collecting everything doubled") {
+        val collected = src.collect(i => Some(i * 2))
+
+        check { (ints: List[Int]) =>
+          val occurrences = mkOccurrences(collected) { engine =>
+            ints.foreach(i => engine.fire(src -> i))
+          }
+          occurrences == ints.map(_ * 2)
+        }
+      }
+
+      it("should only have even occurrences when collecting even values") {
+        def even(v: Int): Boolean = v % 2 == 0
+        val collected = src.collect { i =>
+          if (even(i)) Some(i)
+          else None
+        }
+
+        check { (ints: List[Int]) =>
+          val occurrences = mkOccurrences(collected) { engine =>
+            ints.foreach(i => engine.fire(src -> i))
+          }
+          occurrences == ints.filter(even)
         }
       }
     }
