@@ -1,7 +1,7 @@
 package hokko.core
 
 import scala.language.implicitConversions
-import scalaz.{Applicative, Need, Value}
+import scalaz.{ Applicative, Need, Value }
 
 trait DiscreteBehavior[A] extends Behavior[A] {
   private[core] val node: Push[A] with Pull[A]
@@ -18,11 +18,11 @@ trait DiscreteBehavior[A] extends Behavior[A] {
 
 object DiscreteBehavior {
   // Convenience traits stacked in the right order
-  private trait StatePush[A] extends State[A] with Push[A] {
+  private trait StatePush[A] extends Push[A] with State[A] {
     def state(context: TickContext): Option[A] =
       context.getPulse(this)
   }
-  private trait PullStatePush[A] extends Pull[A] with StatePush[A]
+  private trait PullStatePush[A] extends StatePush[A] with Pull[A]
 
   private def fromNode[A](n: Push[A] with Pull[A]): DiscreteBehavior[A] =
     new DiscreteBehavior[A] { val node = n }
@@ -35,8 +35,8 @@ object DiscreteBehavior {
 
   private case class ConstantNode[A](init: A) extends Push[A] with Pull[A] {
     val dependencies = List.empty
-    def thunk(context: TickContext): Need[A] = Value(init)
     def pulse(context: TickContext): Option[A] = None
+    def thunk(context: TickContext): Need[A] = Value(init)
   }
 
   private case class FoldNode[A, B](

@@ -3,19 +3,17 @@ package hokko.core
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Prop._
 import org.scalatest.FunSpec
+import org.scalatest.Matchers
 import org.scalatest.prop.Checkers
 import scala.collection.mutable.ListBuffer
 import scala.language.{ existentials, reflectiveCalls }
 import scalaz.syntax.applicative._
 
-class EventTest extends FunSpec with Checkers {
+class EventTest extends FunSpec with Checkers with Matchers {
   implicit override val generatorDrivenConfig = PropertyCheckConfig(minSize = 10)
 
-  // implicitly lift to constants to make testing easier
-  implicit def liftBehavior[A](a: A): Behavior[A] = Behavior.constant(a)
-
   def mkOccurrences[A](ev: Event[A])(performSideEffects: Engine => Unit): List[A] = {
-    val engine = Engine.compile(ev)
+    val engine = Engine.compile(ev)()
     val occurrences = ListBuffer.empty[A]
     val subscription = engine.subscribeForPulses {
       _(ev).foreach(occurrences += _)
@@ -26,30 +24,45 @@ class EventTest extends FunSpec with Checkers {
   }
 
   describe("Events") {
+    describe("that are folded") {
+      val src = Event.source[Int]
+      it("should have a current value equal to " +
+        "the initial value when the source event has no occurrences") {
+        check { (i: Int) =>
+          val beh = src.fold(i)(_ + _)
+          val engine = Engine.compile()(beh)
+          val currentValues = engine.askCurrentValues()
+          currentValues(beh).get.value == i
+        }
+      }
+      it("should have a current value representing the total accumulation of occurrences") {
+        val beh = src.fold(0)(_ + _)
+        check { (ints: List[Int]) =>
+          val engine = Engine.compile()(beh)
+          ints.foreach(i => engine.fire(src -> i))
+          val currentValues = engine.askCurrentValues()
+          currentValues(beh).get.value == ints.sum
+        }
+      }
+    }
     describe("that unify other events using behaviors f1, f2 and f3") {
       val src1 = Event.source[Int]
       val src2 = Event.source[Double]
 
-      // Set up dummy variables to wrap with pull behaviors
-      var f1: Int => String = x => x.toString
-      var f2: Double => String = x => x.toString
-      var f3: (Int, Double) => String = (i, d) => (i, d).toString
+      val f1: Int => String = _.toString
+      val f2: Double => String = _.toString
+      val f3: (Int, Double) => String = (_, _).toString
 
-      val b1 = Behavior.byPulling(() => f1)
-      val b2 = Behavior.byPulling(() => f2)
-      val b3 = Behavior.byPulling(() => f3)
-
-      val union: Event[String] = src1.unionWithBehavior(src2, b1, b2, b3)
+      val union = src1.unionWith(src2, f1, f2, f3)
 
       it("should have occurrences matching f1 when left dependency fires") {
         check { (ints: List[Int]) =>
           val occurrences = mkOccurrences(union) { engine =>
             ints.foreach { i =>
-              f1 = x => (x + i).toString
               engine.fire(src1 -> i)
             }
           }
-          occurrences.toList == ints.map(i => (i * 2).toString)
+          occurrences.toList == ints.map(_.toString)
         }
       }
 
@@ -57,11 +70,10 @@ class EventTest extends FunSpec with Checkers {
         check { (doubles: List[Double]) =>
           val occurrences = mkOccurrences(union) { engine =>
             doubles.foreach { d =>
-              f2 = x => (x + d).toString
               engine.fire(src2 -> d)
             }
           }
-          occurrences.toList == doubles.map(d => (d * 2).toString)
+          occurrences.toList == doubles.map(_.toString)
         }
       }
 
@@ -69,13 +81,11 @@ class EventTest extends FunSpec with Checkers {
         check { (intDoubles: List[(Int, Double)]) =>
           val occurrences = mkOccurrences(union) { engine =>
             intDoubles.foreach {
-              case (i, d) =>
-                f3 = (x, y) => (x + i, y + d).toString
-                engine.fire(src1 -> i, src2 -> d)
+              case (i, d) => engine.fire(src1 -> i, src2 -> d)
             }
           }
           occurrences.toList == intDoubles.map {
-            case (i, d) => (i * 2, d * 2).toString
+            case (i, d) => (i, d).toString
           }
         }
       }

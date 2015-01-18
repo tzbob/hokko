@@ -6,7 +6,7 @@ import scalaz.Need
 import scalaz.syntax.monad._
 import shapeless.HMap
 
-class Engine private (exitNodes: Seq[Push[_]]) {
+class Engine private (exitNodes: Seq[Node[_]]) {
   private[this] var handlers = Set.empty[Pulses => Unit]
   private[this] var memoTable = HMap.empty[TickContext.StateRelation]
   private[this] def currentContext() = TickContext.fromMemoTable(memoTable)
@@ -18,15 +18,16 @@ class Engine private (exitNodes: Seq[Push[_]]) {
     val startContext = pulses.foldLeft(currentContext()) {
       case (acc, (src, x)) => acc.addPulse(src.node, x)
     }
-    propagate(startContext)
-  }
-
-  private[this] def propagate(startContext: TickContext): Unit = {
-    val endContext = propagationResults(startContext)
+    val endContext = propagate(startContext)
     handlers.foreach { handler =>
       handler(new Pulses(endContext))
     }
+  }
+
+  private[this] def propagate(startContext: TickContext): TickContext = {
+    val endContext = propagationResults(startContext)
     memoTable = endContext.memoTable
+    endContext
   }
 
   private[this] def propagationResults(startContext: TickContext): TickContext =
@@ -38,13 +39,13 @@ class Engine private (exitNodes: Seq[Push[_]]) {
       node.updateContext(context).getOrElse(context)
     }
 
-  def askCurrentValues(): Values = new Values(propagationResults(currentContext()))
-  def subscribeForPulses[A](handler: Pulses => Unit): Subscription[A] = {
+  def askCurrentValues(): Values = new Values(propagate(currentContext()))
+  def subscribeForPulses(handler: Pulses => Unit): Subscription = {
     handlers += handler
     new Subscription(handler)
   }
 
-  class Subscription[A] private[Engine] (handler: Pulses => Unit) {
+  class Subscription private[Engine] (handler: Pulses => Unit) {
     def cancel(): Unit = handlers -= handler
   }
 
@@ -61,7 +62,8 @@ class Engine private (exitNodes: Seq[Push[_]]) {
 }
 
 object Engine {
-  def compile(events: Event[_]*): Engine = new Engine(events.map(_.node))
+  def compile(events: Event[_]*)(behaviors: Behavior[_]*): Engine =
+    new Engine(events.map(_.node) ++ behaviors.map(_.node))
 
   private[core] def buildDescendants(nodes: Seq[Node[_]]): Map[Node[_], Set[Node[_]]] = {
     @tailrec

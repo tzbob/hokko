@@ -1,6 +1,6 @@
 package hokko.core
 
-import scalaz.{Functor, Need}
+import scalaz.{ Functor, Need }
 import scalaz.std.option._
 import scalaz.syntax.applicative._
 
@@ -12,23 +12,23 @@ trait Event[A] {
   def fold[B](initial: B)(f: (B, A) => B): DiscreteBehavior[B] =
     DiscreteBehavior.folded(this, initial, f)
 
-  def unionWithBehavior[B, C](b: Event[B], f1: Behavior[A => C], f2: Behavior[B => C], f3: Behavior[(A, B) => C]): Event[C] =
+  def unionWith[B, C](b: Event[B], f1: A => C, f2: B => C, f3: (A, B) => C): Event[C] =
     Event.fromNode(Event.UnionWith(this, b, f1, f2, f3))
 
-  def collectWithBehavior[B](fb: Behavior[A => Option[B]]): Event[B] =
-    Event.fromNode(Event.CollectWithBehavior(this, fb))
+  def collect[B](fb: A => Option[B]): Event[B] =
+    Event.fromNode(Event.Collect(this, fb))
 
   // derived functions
 
   def map[B](f: A => B): Event[B] =
-    collectWithBehavior(Behavior.constant { (a: A) =>
+    collect { (a: A) =>
       Some(f(a))
-    })
+    }
 
   def dropIf[B](f: A => Boolean): Event[A] =
-    collectWithBehavior(Behavior.constant { (a: A) =>
+    collect { (a: A) =>
       if (f(a)) None else Some(a)
-    })
+    }
 }
 
 sealed trait EventSource[A] extends Event[A]
@@ -67,44 +67,32 @@ object Event {
   private case class UnionWith[A, B, C](
     evA: Event[A],
     evB: Event[B],
-    fb1: Behavior[A => C],
-    fb2: Behavior[B => C],
-    fb3: Behavior[(A, B) => C]
+    f1: A => C,
+    f2: B => C,
+    f3: (A, B) => C
   ) extends Push[C] {
-    val dependencies = List(evA.node, evB.node, fb1.node, fb2.node, fb3.node)
+    val dependencies = List(evA.node, evB.node)
 
     def pulse(context: TickContext): Option[C] = {
       val aPulse = context.getPulse(evA.node)
       val bPulse = context.getPulse(evB.node)
 
-      // we can be sure that the thunks were already filled in
-      def now[T](b: Behavior[T]): Need[T] = context.getThunk(b.node).get
-
-      val f1 = now(fb1)
-      val f2 = now(fb2)
-      val f3 = now(fb3)
-
       (aPulse, bPulse) match {
-        case (Some(a), None) => Some(f1.value(a))
-        case (None, Some(b)) => Some(f2.value(b))
-        case (Some(a), Some(b)) => Some(f3.value(a, b))
+        case (Some(a), None) => Some(f1(a))
+        case (None, Some(b)) => Some(f2(b))
+        case (Some(a), Some(b)) => Some(f3(a, b))
         case _ => None
       }
     }
-
   }
 
-  private case class CollectWithBehavior[A, B](
+  private case class Collect[A, B](
     ev: Event[A],
-    b: Behavior[A => Option[B]]
+    f: A => Option[B]
   ) extends Push[B] {
-    val dependencies = List(ev.node, b.node)
+    val dependencies = List(ev.node)
     def pulse(context: TickContext): Option[B] =
-      for {
-        pulse <- context.getPulse(ev.node)
-        thunk <- context.getThunk(b.node)
-        newPulse <- thunk.value(pulse)
-      } yield newPulse
+      context.getPulse(ev.node).flatMap(f(_))
   }
 
   implicit val evtFunctor = new Functor[Event] {
