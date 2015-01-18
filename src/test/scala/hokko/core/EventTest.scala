@@ -3,26 +3,9 @@ package hokko.core
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Prop._
 import org.scalatest.FunSpec
-import org.scalatest.Matchers
-import org.scalatest.prop.Checkers
-import scala.collection.mutable.ListBuffer
 import scala.language.{ existentials, reflectiveCalls }
-import scalaz.syntax.applicative._
 
-class EventTest extends FunSpec with Checkers with Matchers {
-  implicit override val generatorDrivenConfig = PropertyCheckConfig(minSize = 10)
-
-  def mkOccurrences[A](ev: Event[A])(performSideEffects: Engine => Unit): List[A] = {
-    val engine = Engine.compile(ev)()
-    val occurrences = ListBuffer.empty[A]
-    val subscription = engine.subscribeForPulses {
-      _(ev).foreach(occurrences += _)
-    }
-    performSideEffects(engine)
-    subscription.cancel()
-    occurrences.toList
-  }
-
+class EventTest extends FRPTestSuite {
   describe("Events") {
     describe("that are folded") {
       val src = Event.source[Int]
@@ -35,16 +18,18 @@ class EventTest extends FunSpec with Checkers with Matchers {
           currentValues(beh).get.value == i
         }
       }
+
       it("should have a current value representing the total accumulation of occurrences") {
         val beh = src.fold(0)(_ + _)
         check { (ints: List[Int]) =>
           val engine = Engine.compile()(beh)
-          ints.foreach(i => engine.fire(src -> i))
+          fireAll(src, ints)(engine)
           val currentValues = engine.askCurrentValues()
           currentValues(beh).get.value == ints.sum
         }
       }
     }
+
     describe("that unify other events using behaviors f1, f2 and f3") {
       val src1 = Event.source[Int]
       val src2 = Event.source[Double]
@@ -57,22 +42,14 @@ class EventTest extends FunSpec with Checkers with Matchers {
 
       it("should have occurrences matching f1 when left dependency fires") {
         check { (ints: List[Int]) =>
-          val occurrences = mkOccurrences(union) { engine =>
-            ints.foreach { i =>
-              engine.fire(src1 -> i)
-            }
-          }
+          val occurrences = mkOccurrencesWithPulses(union)(src1, ints)
           occurrences == ints.map(_.toString)
         }
       }
 
       it("should have occurrences matching f2 when right dependency fires") {
         check { (doubles: List[Double]) =>
-          val occurrences = mkOccurrences(union) { engine =>
-            doubles.foreach { d =>
-              engine.fire(src2 -> d)
-            }
-          }
+          val occurrences = mkOccurrencesWithPulses(union)(src2, doubles)
           occurrences == doubles.map(_.toString)
         }
       }
@@ -90,6 +67,7 @@ class EventTest extends FunSpec with Checkers with Matchers {
         }
       }
     }
+
     describe("that are collected") {
       val src = Event.source[Int]
 
@@ -97,9 +75,7 @@ class EventTest extends FunSpec with Checkers with Matchers {
         val collected = src.collect(_ => None)
 
         check { (ints: List[Int]) =>
-          val occurrences = mkOccurrences(collected) { engine =>
-            ints.foreach(i => engine.fire(src -> i))
-          }
+          val occurrences = mkOccurrencesWithPulses(collected)(src, ints)
           occurrences == List.empty
         }
       }
@@ -108,9 +84,7 @@ class EventTest extends FunSpec with Checkers with Matchers {
         val collected = src.collect(i => Some(i * 2))
 
         check { (ints: List[Int]) =>
-          val occurrences = mkOccurrences(collected) { engine =>
-            ints.foreach(i => engine.fire(src -> i))
-          }
+          val occurrences = mkOccurrencesWithPulses(collected)(src, ints)
           occurrences == ints.map(_ * 2)
         }
       }
@@ -123,9 +97,7 @@ class EventTest extends FunSpec with Checkers with Matchers {
         }
 
         check { (ints: List[Int]) =>
-          val occurrences = mkOccurrences(collected) { engine =>
-            ints.foreach(i => engine.fire(src -> i))
-          }
+          val occurrences = mkOccurrencesWithPulses(collected)(src, ints)
           occurrences == ints.filter(even)
         }
       }
