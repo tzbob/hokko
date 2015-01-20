@@ -65,7 +65,6 @@ class EngineTest extends FunSpec with Matchers with MockitoSugar {
 
       it("should handle multiple trees") {
         val bfsList = Engine.sortedNodes(List(simpleTree, n2a), allDescendants)
-
         val srcNodes = List(n1, n2, n1a)
         val exitNodes = List(simpleTree, n2a)
 

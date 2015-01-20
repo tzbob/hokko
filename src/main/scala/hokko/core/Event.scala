@@ -21,14 +21,10 @@ trait Event[A] {
   // derived functions
 
   def map[B](f: A => B): Event[B] =
-    collect { (a: A) =>
-      Some(f(a))
-    }
+    collect { a => Some(f(a)) }
 
   def dropIf[B](f: A => Boolean): Event[A] =
-    collect { (a: A) =>
-      if (f(a)) None else Some(a)
-    }
+    collect { a => if (f(a)) None else Some(a) }
 }
 
 sealed trait EventSource[A] extends Event[A]

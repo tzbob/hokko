@@ -8,7 +8,8 @@ trait DiscreteBehavior[A] extends Behavior[A] {
 
   // primitives 
 
-  val changes: Event[A] = Event.fromNode(node)
+  // lazy so that implementations have a chance to implement node
+  lazy val changes: Event[A] = Event.fromNode(node)
 
   def reverseApply[B](fb: DiscreteBehavior[A => B]): DiscreteBehavior[B] =
     DiscreteBehavior.fromNode(DiscreteBehavior.ReverseApply(this, fb))
@@ -18,11 +19,11 @@ trait DiscreteBehavior[A] extends Behavior[A] {
 
 object DiscreteBehavior {
   // Convenience traits stacked in the right order
-  private trait StatePush[A] extends Push[A] with State[A] {
+  private trait PushState[A] extends Push[A] with State[A] {
     def state(context: TickContext): Option[A] =
       context.getPulse(this)
   }
-  private trait PullStatePush[A] extends StatePush[A] with Pull[A]
+  private trait PullStatePush[A] extends PushState[A] with Pull[A]
 
   private def fromNode[A](n: Push[A] with Pull[A]): DiscreteBehavior[A] =
     new DiscreteBehavior[A] { val node = n }

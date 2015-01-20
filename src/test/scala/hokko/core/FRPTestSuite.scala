@@ -8,8 +8,6 @@ import scala.collection.mutable.ListBuffer
 import scala.language.{ existentials, reflectiveCalls }
 
 trait FRPTestSuite extends FunSpec with Checkers {
-  implicit override val generatorDrivenConfig = PropertyCheckConfig(minSize = 10)
-
   def mkOccurrences[A](ev: Event[A])(performSideEffects: Engine => Unit): List[A] = {
     val engine = Engine.compile(ev)()
     val occurrences = ListBuffer.empty[A]
