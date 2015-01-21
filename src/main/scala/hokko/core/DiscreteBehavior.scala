@@ -4,12 +4,9 @@ import scala.language.implicitConversions
 import scalaz.{ Applicative, Need, Value }
 
 trait DiscreteBehavior[A] extends Behavior[A] {
-  private[core] val node: Push[A] with Pull[A]
-
   // primitives 
 
-  // lazy so that implementations have a chance to implement node
-  lazy val changes: Event[A] = Event.fromNode(node)
+  def changes: Event[A]
 
   def reverseApply[B](fb: DiscreteBehavior[A => B]): DiscreteBehavior[B] =
     DiscreteBehavior.fromNode(DiscreteBehavior.ReverseApply(this, fb))
@@ -25,8 +22,17 @@ object DiscreteBehavior {
   }
   private trait PullStatePush[A] extends PushState[A] with Pull[A]
 
+  private[core] def fromPullAndChanges[A](n: Pull[A], ev: Event[A]) =
+    new DiscreteBehavior[A] {
+      val node = n
+      val changes: Event[A] = ev
+    }
+
   private def fromNode[A](n: Push[A] with Pull[A]): DiscreteBehavior[A] =
-    new DiscreteBehavior[A] { val node = n }
+    new DiscreteBehavior[A] {
+      val node = n
+      val changes: Event[A] = Event.fromNode(n)
+    }
 
   def constant[A](init: A): DiscreteBehavior[A] = fromNode(ConstantNode(init))
 

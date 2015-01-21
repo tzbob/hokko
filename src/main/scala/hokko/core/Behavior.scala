@@ -15,6 +15,9 @@ trait Behavior[A] {
   def snapshotWith[B](ev: Event[A => B]): Event[B] =
     Event.snapshotted(ev, this)
 
+  def withChanges(changes: Event[A]): DiscreteBehavior[A] =
+    DiscreteBehavior.fromPullAndChanges(node, changes)
+
   // derived 
 
 }
