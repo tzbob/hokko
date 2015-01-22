@@ -1,6 +1,5 @@
 package hokko.core
 
-import scala.language.implicitConversions
 import scalaz.{ Applicative, Need, Value }
 
 trait DiscreteBehavior[A] extends Behavior[A] {
@@ -16,11 +15,11 @@ trait DiscreteBehavior[A] extends Behavior[A] {
 
 object DiscreteBehavior {
   // Convenience traits stacked in the right order
-  private trait PushState[A] extends Push[A] with State[A] {
+  private[core] trait PushState[A] extends Push[A] with State[A] {
     def state(context: TickContext): Option[A] =
       context.getPulse(this)
   }
-  private trait PullStatePush[A] extends PushState[A] with Pull[A]
+  private[core] trait PullStatePush[A] extends PushState[A] with Pull[A]
 
   private[core] def fromPullAndChanges[A](n: Pull[A], ev: Event[A]) =
     new DiscreteBehavior[A] {
@@ -28,7 +27,7 @@ object DiscreteBehavior {
       val changes: Event[A] = ev
     }
 
-  private def fromNode[A](n: Push[A] with Pull[A]): DiscreteBehavior[A] =
+  private def fromNode[A](n: Push[A] with Pull[A]) =
     new DiscreteBehavior[A] {
       val node = n
       val changes: Event[A] = Event.fromNode(n)
@@ -37,9 +36,6 @@ object DiscreteBehavior {
   def constant[A](init: A): DiscreteBehavior[A] = fromNode(ConstantNode(init))
 
   // primitive node implementations
-  private[core] def folded[A, B](foldee: Event[A], initial: B, f: (B, A) => B): DiscreteBehavior[B] =
-    fromNode(FoldNode(foldee, initial, f))
-
   private case class ConstantNode[A](init: A) extends Push[A] with Pull[A] {
     val dependencies = List.empty
     def pulse(context: TickContext): Option[A] = None

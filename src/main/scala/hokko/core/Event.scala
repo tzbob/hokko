@@ -9,8 +9,8 @@ trait Event[A] {
 
   // core
 
-  def fold[B](initial: B)(f: (B, A) => B): DiscreteBehavior[B] =
-    DiscreteBehavior.folded(this, initial, f)
+  def fold[B](initial: B)(f: (B, A) => B): IncrementalBehavior[B, A] =
+    IncrementalBehavior.folded(this, initial, f)
 
   def unionWith[B, C](b: Event[B], f1: A => C, f2: B => C, f3: (A, B) => C): Event[C] =
     Event.fromNode(Event.UnionWith(this, b, f1, f2, f3))
