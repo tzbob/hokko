@@ -3,33 +3,24 @@ package hokko.core
 import scalaz.{ Functor, Need }
 import scalaz.std.option._
 import scalaz.syntax.applicative._
+import hokko.syntax.EventSyntax
 
 trait Event[A] {
-  private[hokko] val node: Push[A]
-
-  // core
+  private[core] val node: Push[A]
 
   def fold[B](initial: B)(f: (B, A) => B): IncrementalBehavior[B, A] =
     IncrementalBehavior.folded(this, initial, f)
 
-  def unionWith[B, C](b: Event[B], f1: A => C, f2: B => C, f3: (A, B) => C): Event[C] =
+  def unionWith[B, C](b: Event[B])(f1: A => C)(f2: B => C)(f3: (A, B) => C): Event[C] =
     Event.fromNode(Event.UnionWith(this, b, f1, f2, f3))
 
   def collect[B](fb: A => Option[B]): Event[B] =
     Event.fromNode(Event.Collect(this, fb))
-
-  // derived functions
-
-  def map[B](f: A => B): Event[B] =
-    collect { a => Some(f(a)) }
-
-  def dropIf[B](f: A => Boolean): Event[A] =
-    collect { a => if (f(a)) None else Some(a) }
 }
 
 sealed trait EventSource[A] extends Event[A]
 
-object Event {
+object Event extends EventSyntax {
   private[core] def fromNode[A](n: Push[A]): Event[A] =
     new Event[A] { val node = n }
 
@@ -41,7 +32,7 @@ object Event {
   private[core] def snapshotted[A, B](ev: Event[A => B], snappee: Behavior[A]): Event[B] =
     fromNode(SnapshotWith(ev, snappee))
 
-  // This can't be a case class, we're relying on pointer eq to manually place
+  // This can't be a case class, we're relying on reference eq to manually place
   // values of different types with different instances of `NeverPush`
   private class NeverPush[A]() extends Push[A] {
     val dependencies = List.empty

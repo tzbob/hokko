@@ -1,13 +1,12 @@
 package hokko.core
 
-import scalaz.{Applicative, Need}
+import scalaz.{ Applicative, Need }
 import scalaz.std.option._
 import scalaz.syntax.applicative._
+import hokko.syntax.BehaviorSyntax
 
 trait Behavior[A] {
   private[core] val node: Pull[A]
-
-  // core
 
   def reverseApply[B](fb: Behavior[A => B]): Behavior[B] =
     Behavior.ReverseApply(this, fb)
@@ -16,17 +15,17 @@ trait Behavior[A] {
     Event.snapshotted(ev, this)
 
   def withChanges(changes: Event[A]): DiscreteBehavior[A] =
-    DiscreteBehavior.fromPullAndChanges(node, changes)
-
-  // derived 
-
+    DiscreteBehavior.fromBehaviorAndChanges(this, changes)
 }
 
-object Behavior {
-  def constant[A](x: A): Behavior[A] = DiscreteBehavior.constant(x)
-  def byPulling[A](f: () => A): Behavior[A] = Polling(f)
+object Behavior extends BehaviorSyntax {
+  /*
+   fromPollWithDeps[A](list: Node[A], f: TickContext => IO[A]): Behavior[A]
+   Event[Future[A]].wormhole: Event[A]
+   */
 
-  private case class Polling[A](f: () => A) extends Behavior[A] {
+  def constant[A](x: A): Behavior[A] = DiscreteBehavior.constant(x)
+  def fromPoll[A](f: () => A): Behavior[A] = new Behavior[A] {
     val node = new Pull[A] {
       val dependencies = List.empty[Node[_]]
       def thunk(context: TickContext) = Need(f())

@@ -1,10 +1,11 @@
 package hokko.core
 
+import hokko.syntax.BehaviorSyntax
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Prop._
 import scalaz.syntax.applicative._
 
-class DiscreteBehaviorTest extends FRPTestSuite {
+class DiscreteBehaviorTest extends FRPTestSuite with BehaviorSyntax {
   describe("DiscreteBehaviors") {
     describe("that are constant") {
       val const = DiscreteBehavior.constant(5)
@@ -14,6 +15,21 @@ class DiscreteBehaviorTest extends FRPTestSuite {
           assert(currentValues(const).get.value === 5)
         }
         assert(occurrences === List.empty)
+      }
+    }
+    describe("made from polling and changes") {
+      var x = 0
+      val src = Event.source[Unit]
+      val b = Behavior.fromPoll(() => x)
+      val db = b.signalChanges(src)
+      it("should retrieve it's current value from the poll at the signaled time") {
+        val occurrences = mkOccurrences(db.changes) { implicit engine =>
+          x = 5
+          engine.fire(src -> ())
+          val currentValues = engine.askCurrentValues()
+          assert(currentValues(b).get.value === 5)
+        }
+        assert(occurrences === List(5))
       }
     }
     describe("that are reverse applied ") {

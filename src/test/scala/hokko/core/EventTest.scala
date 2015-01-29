@@ -34,11 +34,7 @@ class EventTest extends FRPTestSuite {
       val src1 = Event.source[Int]
       val src2 = Event.source[Double]
 
-      val f1: Int => String = _.toString
-      val f2: Double => String = _.toString
-      val f3: (Int, Double) => String = (_, _).toString
-
-      val union = src1.unionWith(src2, f1, f2, f3)
+      val union = src1.unionWith(src2)(_.toString)(_.toString) { (_, _).toString }
 
       it("should have occurrences matching f1 when left dependency fires") {
         check { (ints: List[Int]) =>

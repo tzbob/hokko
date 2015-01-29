@@ -1,19 +1,21 @@
 package hokko.core
 
 import scalaz.{ Applicative, Need, Value }
+import hokko.syntax.DiscreteBehaviorSyntax
 
 trait DiscreteBehavior[A] extends Behavior[A] {
-  // primitives 
-
   def changes: Event[A]
 
   def reverseApply[B](fb: DiscreteBehavior[A => B]): DiscreteBehavior[B] =
     DiscreteBehavior.fromNode(DiscreteBehavior.ReverseApply(this, fb))
 
-  // derived methods
+  def withDeltas[DeltaA](deltas: Event[DeltaA]): IncrementalBehavior[A, DeltaA] =
+    IncrementalBehavior.fromDiscreteAndDeltas(this, deltas)
 }
 
-object DiscreteBehavior {
+object DiscreteBehavior extends DiscreteBehaviorSyntax {
+  def constant[A](init: A): DiscreteBehavior[A] = fromNode(ConstantNode(init))
+
   // Convenience traits stacked in the right order
   private[core] trait PushState[A] extends Push[A] with State[A] {
     def state(context: TickContext): Option[A] =
@@ -21,9 +23,9 @@ object DiscreteBehavior {
   }
   private[core] trait PullStatePush[A] extends PushState[A] with Pull[A]
 
-  private[core] def fromPullAndChanges[A](n: Pull[A], ev: Event[A]) =
+  private[core] def fromBehaviorAndChanges[A](b: Behavior[A], ev: Event[A]) =
     new DiscreteBehavior[A] {
-      val node = n
+      val node = b.node
       val changes: Event[A] = ev
     }
 
@@ -33,30 +35,11 @@ object DiscreteBehavior {
       val changes: Event[A] = Event.fromNode(n)
     }
 
-  def constant[A](init: A): DiscreteBehavior[A] = fromNode(ConstantNode(init))
-
   // primitive node implementations
   private case class ConstantNode[A](init: A) extends Push[A] with Pull[A] {
     val dependencies = List.empty
     def pulse(context: TickContext): Option[A] = None
     def thunk(context: TickContext): Need[A] = Value(init)
-  }
-
-  private case class FoldNode[A, B](
-    ev: Event[A],
-    init: B,
-    f: (B, A) => B
-  ) extends PullStatePush[B] {
-    val dependencies = List(ev.node)
-    def pulse(context: TickContext): Option[B] = {
-      val evPulse = context.getPulse(ev.node)
-      evPulse.map { pulse =>
-        val previous = context.getState(this).getOrElse(init)
-        f(previous, pulse)
-      }
-    }
-    def thunk(c: TickContext): Need[B] =
-      Value(c.getPulse(this).orElse(c.getState(this)).getOrElse(init))
   }
 
   private case class ReverseApply[A, B](

@@ -1,21 +1,30 @@
 package hokko.core
 
-import scalaz.{Need, Value}
+import scalaz.{ Need, Value }
 
 trait IncrementalBehavior[A, DeltaA] extends DiscreteBehavior[A] {
   def deltas: Event[DeltaA]
 }
 
 object IncrementalBehavior {
-  private def fromNodeAndDeltas[A, DeltaA](n: Push[A] with Pull[A], differences: Event[DeltaA]) =
+  def constant[A, DeltaA](init: A): IncrementalBehavior[A, DeltaA] =
+    DiscreteBehavior.constant(init).withDeltas(Event.empty)
+
+  private[core] def fromDiscreteAndDeltas[A, DeltaA](db: DiscreteBehavior[A], ev: Event[DeltaA]) =
     new IncrementalBehavior[A, DeltaA] {
-      val node = n
-      val changes: Event[A] = Event.fromNode(n)
-      val deltas: Event[DeltaA] = differences
+      val node = db.node
+      val changes: Event[A] = db.changes
+      val deltas: Event[DeltaA] = ev
     }
 
-  private[core] def folded[A, DeltaA](foldee: Event[DeltaA], initial: A, f: (A, DeltaA) => A) =
-    fromNodeAndDeltas(FoldNode(foldee, initial, f), foldee)
+  private[core] def folded[A, DeltaA](foldee: Event[DeltaA], initial: A, f: (A, DeltaA) => A) = {
+    val foldNode = FoldNode(foldee, initial, f)
+    new IncrementalBehavior[A, DeltaA] {
+      val node: Pull[A] = foldNode
+      val changes: Event[A] = Event.fromNode(foldNode)
+      val deltas: Event[DeltaA] = foldee
+    }
+  }
 
   private case class FoldNode[A, DeltaA](
     ev: Event[DeltaA],

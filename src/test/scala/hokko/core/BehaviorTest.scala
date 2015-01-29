@@ -18,7 +18,7 @@ class BehaviorTest extends FRPTestSuite {
     describe("that are made from polling functions") {
       it("should represent the current state of the function") {
         var i = 0
-        val beh = Behavior.byPulling(() => i)
+        val beh = Behavior.fromPoll(() => i)
         val engine = Engine.compile()(beh)
         check { (int: Int) =>
           i = int
@@ -32,8 +32,8 @@ class BehaviorTest extends FRPTestSuite {
       var param = 0
       var f = (i: Int) => i + 0
 
-      val bParam = Behavior.byPulling(() => param)
-      val bFun = Behavior.byPulling(() => f)
+      val bParam = Behavior.fromPoll(() => param)
+      val bFun = Behavior.fromPoll(() => f)
 
       it("to changing functions should simply apply the functon") {
         val bApplied = bParam.reverseApply(bFun)
@@ -49,7 +49,7 @@ class BehaviorTest extends FRPTestSuite {
 
     describe("that are snapshotted") {
       var param = 0
-      val bParam = Behavior.byPulling(() => param)
+      val bParam = Behavior.fromPoll(() => param)
       val src = Event.source[Int => Int]
       val snapped = bParam.snapshotWith(src)
 
