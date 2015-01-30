@@ -38,7 +38,9 @@ class SeqBehaviorOps[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]] private[colle
 }
 
 trait SeqBehaviorSyntax {
-  type SeqBehavior[A, D[E] <: SeqDiffLike[E, D]] = IncrementalBehavior[Seq[A], D[A]]
+  type SeqBehavior[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]] = IncrementalBehavior[Seq[A], D[A]]
+  implicit def ToSeqBehaviorOps[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]](self: SeqBehavior[A, D]) =
+    new SeqBehaviorOps(self)
 }
 
 object SeqBehavior extends SeqBehaviorSyntax {

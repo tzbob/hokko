@@ -37,7 +37,9 @@ class MapBehaviorOps[K, V, D[X, Y] <: MapDiffLike[X, Y, D] with MapDiff[X, Y]] p
 }
 
 trait MapBehaviorSyntax {
-  type MapBehavior[K, V, D[K, V] <: MapDiffLike[K, V, D]] = IncrementalBehavior[Map[K, V], D[K, V]]
+  type MapBehavior[K, V, D[X, Y] <: MapDiffLike[X, Y, D] with MapDiff[X, Y]] = IncrementalBehavior[Map[K, V], D[K, V]]
+  implicit def ToMapBehaviorOps[K, V, D[X, Y] <: MapDiffLike[X, Y, D] with MapDiff[X, Y]](self: MapBehavior[K, V, D]) =
+    new MapBehaviorOps(self)
 }
 
 object MapBehavior extends MapBehaviorSyntax {
