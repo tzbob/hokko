@@ -3,13 +3,13 @@ package hokko.core
 import scalaz.{ Applicative, Need, Value }
 import hokko.syntax.DiscreteBehaviorSyntax
 
-trait DiscreteBehavior[A] extends Behavior[A] {
+trait DiscreteBehavior[+A] extends Behavior[A] {
   val changes: Event[A]
 
-  def reverseApply[B](fb: DiscreteBehavior[A => B]): DiscreteBehavior[B] =
+  def reverseApply[B, AA >: A](fb: DiscreteBehavior[A => B]): DiscreteBehavior[B] =
     DiscreteBehavior.fromNode(DiscreteBehavior.ReverseApply(this, fb))
 
-  def withDeltas[DeltaA](init: A, deltas: Event[DeltaA]): IncrementalBehavior[A, DeltaA] =
+  def withDeltas[DeltaA, AA >: A](init: AA, deltas: Event[DeltaA]): IncrementalBehavior[AA, DeltaA] =
     IncrementalBehavior.fromDiscreteAndDeltas(init, this, deltas)
 }
 

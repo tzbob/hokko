@@ -2,7 +2,7 @@ package hokko.core
 
 import scalaz.{ Need, Value }
 
-trait IncrementalBehavior[A, DeltaA] extends DiscreteBehavior[A] {
+trait IncrementalBehavior[+A, DeltaA] extends DiscreteBehavior[A] {
   val initial: A
   def deltas: Event[DeltaA]
 }

@@ -13,7 +13,7 @@ sealed trait Node[+A] {
   def updateContext(context: TickContext): Option[TickContext] = None
 }
 
-trait Pull[A] extends Node[A] {
+trait Pull[+A] extends Node[A] {
   def thunk(context: TickContext): Need[A]
 
   override def updateContext(context: TickContext): Option[TickContext] = {
@@ -22,7 +22,7 @@ trait Pull[A] extends Node[A] {
   }
 }
 
-trait Push[A] extends Node[A] {
+trait Push[+A] extends Node[A] {
   def pulse(context: TickContext): Option[A]
 
   override def updateContext(context: TickContext): Option[TickContext] = {
@@ -33,7 +33,7 @@ trait Push[A] extends Node[A] {
   }
 }
 
-trait State[A] extends Node[A] {
+trait State[+A] extends Node[A] {
   def state(context: TickContext): Option[A]
 
   override def updateContext(context: TickContext): Option[TickContext] = {

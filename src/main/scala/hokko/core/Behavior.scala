@@ -5,16 +5,16 @@ import scalaz.std.option._
 import scalaz.syntax.applicative._
 import hokko.syntax.BehaviorSyntax
 
-trait Behavior[A] {
+trait Behavior[+A] {
   private[core] val node: Pull[A]
 
-  def reverseApply[B](fb: Behavior[A => B]): Behavior[B] =
+  def reverseApply[B, AA >: A](fb: Behavior[AA => B]): Behavior[B] =
     Behavior.ReverseApply(this, fb)
 
-  def snapshotWith[B](ev: Event[A => B]): Event[B] =
+  def snapshotWith[B, AA >: A](ev: Event[AA => B]): Event[B] =
     Event.snapshotted(ev, this)
 
-  def withChanges(changes: Event[A]): DiscreteBehavior[A] =
+  def withChanges[AA >: A](changes: Event[AA]): DiscreteBehavior[AA] =
     DiscreteBehavior.fromBehaviorAndChanges(this, changes)
 }
 

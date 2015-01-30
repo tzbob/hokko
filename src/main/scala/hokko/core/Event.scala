@@ -5,20 +5,20 @@ import scalaz.std.option._
 import scalaz.syntax.applicative._
 import hokko.syntax.EventSyntax
 
-trait Event[A] {
+trait Event[+A] {
   private[core] val node: Push[A]
 
-  def fold[B](initial: B)(f: (B, A) => B): IncrementalBehavior[B, A] =
+  def fold[B, AA >: A](initial: B)(f: (B, AA) => B): IncrementalBehavior[B, AA] =
     IncrementalBehavior.folded(this, initial, f)
 
-  def unionWith[B, C](b: Event[B])(f1: A => C)(f2: B => C)(f3: (A, B) => C): Event[C] =
+  def unionWith[B, C, AA >: A](b: Event[B])(f1: AA => C)(f2: B => C)(f3: (AA, B) => C): Event[C] =
     Event.fromNode(Event.UnionWith(this, b, f1, f2, f3))
 
-  def collect[B](fb: A => Option[B]): Event[B] =
+  def collect[B, AA >: A](fb: A => Option[B]): Event[B] =
     Event.fromNode(Event.Collect(this, fb))
 }
 
-sealed trait EventSource[A] extends Event[A]
+sealed trait EventSource[+A] extends Event[A]
 
 object Event extends EventSyntax {
   private[core] def fromNode[A](n: Push[A]): Event[A] =
