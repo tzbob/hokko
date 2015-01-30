@@ -1,3 +1,3 @@
 package hokko
 
-package object collection extends TraversableBehaviorSyntax
+package object collection extends SeqBehaviorSyntax
