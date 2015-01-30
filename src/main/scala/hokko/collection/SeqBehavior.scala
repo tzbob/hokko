@@ -24,11 +24,17 @@ class SeqBehaviorOps[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]] private[colle
     appends.fold(newInitial) { (acc, diff) => diff.patch(acc) }
   }
 
-  def +:(heads: Event[A])(implicit cbfId: CanBuildFrom[Seq[A], A, Seq[A]]): SeqBehavior[A, SeqDiff] = {
-    val conses: Event[SeqDiff[A]] = heads.map { Cons(_) }
+  private def selfPatch[B](evt: Event[B])(f: B => SeqDiff[A]): SeqBehavior[A, SeqDiff] = {
+    val conses = evt.map(f)
     conses.unionWith(self.deltas)(identity)(x => x: SeqDiff[A]) { (left, right) => Merged(left, right) }
     conses.fold(self.initial) { (acc, diff) => diff.patch(acc) }
   }
+
+  def +:(heads: Event[A])(implicit cbfId: CanBuildFrom[Seq[A], A, Seq[A]]): SeqBehavior[A, SeqDiff] =
+    selfPatch(heads)(Cons(_))
+
+  def :+(lasts: Event[A])(implicit cbfId: CanBuildFrom[Seq[A], A, Seq[A]]): SeqBehavior[A, SeqDiff] =
+    selfPatch(lasts)(Snoc(_))
 }
 
 trait SeqBehaviorSyntax {
@@ -36,12 +42,12 @@ trait SeqBehaviorSyntax {
 }
 
 object SeqBehavior extends SeqBehaviorSyntax {
-  trait SeqDiffLike[A, +This[_]] extends Diff[A, Seq[A]] { self: SeqDiff[A] =>
+  sealed trait SeqDiff[A] extends SeqDiffLike[A, SeqDiff]
+
+  sealed trait SeqDiffLike[A, +This[_]] extends Diff[A, Seq[A]] { self: SeqDiff[A] =>
     def sizeDiff: Int
     def map[B](f: A => B)(implicit cbf: CanBuildFrom[Seq[A], B, Seq[B]]): This[B]
   }
-
-  trait SeqDiff[A] extends SeqDiffLike[A, SeqDiff]
 
   case class Merged[A](diffs: SeqDiff[A]*) extends SeqDiffLike[A, Merged] with SeqDiff[A] {
     val sizeDiff = diffs.map(_.sizeDiff).sum
@@ -57,5 +63,13 @@ object SeqBehavior extends SeqBehaviorSyntax {
       head +: patchee
     def map[B](f: A => B)(implicit cbf: CanBuildFrom[Seq[A], B, Seq[B]]): Cons[B] =
       Cons(f(head))
+  }
+
+  case class Snoc[A](last: A) extends SeqDiffLike[A, Snoc] with SeqDiff[A] {
+    val sizeDiff = 1
+    def patch(patchee: Seq[A])(implicit cbf: CanBuildFrom[Seq[A], A, Seq[A]]): Seq[A] =
+      patchee :+ last
+    def map[B](f: A => B)(implicit cbf: CanBuildFrom[Seq[A], B, Seq[B]]): Snoc[B] =
+      Snoc(f(last))
   }
 }

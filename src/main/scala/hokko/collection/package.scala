@@ -1,3 +1,5 @@
 package hokko
 
-package object collection extends SeqBehaviorSyntax
+package object collection
+  extends SeqBehaviorSyntax
+  with MapBehaviorSyntax
