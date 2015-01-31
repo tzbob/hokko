@@ -1,14 +1,15 @@
 package hokko.collection
 
-import MapBehavior._
 import hokko.core.{ DiscreteBehavior, Event, IncrementalBehavior }
 import scala.collection.{ TraversableLike, TraversableOnce }
 import scala.collection.generic.CanBuildFrom
 import scala.language.{ higherKinds, implicitConversions }
 
-class MapBehaviorOps[K, V, D[X, Y] <: MapDiffLike[X, Y, D] with MapDiff[X, Y]] private[collection] (
-  val self: MapBehavior[K, V, D]
+class MapBehaviorOps[K, V, D[X, Y] <: MapBehavior.MapDiffLike[X, Y, D] with MapBehavior.MapDiff[X, Y]] private[collection] (
+  val self: IncrementalBehavior[Map[K, V], D[K, V]]
 ) extends AnyVal {
+  import MapBehavior._
+
   def size: DiscreteBehavior[Int] = {
     val initialSize = self.initial.size
     self.deltas.fold(initialSize) { _ + _.sizeDiff }
@@ -36,19 +37,19 @@ class MapBehaviorOps[K, V, D[X, Y] <: MapDiffLike[X, Y, D] with MapDiff[X, Y]] p
     selfPatch(ks)(Delete(_))
 }
 
-trait MapBehaviorSyntax {
-  type MapBehavior[K, V, D[X, Y] <: MapDiffLike[X, Y, D] with MapDiff[X, Y]] = IncrementalBehavior[Map[K, V], D[K, V]]
-  implicit def ToMapBehaviorOps[K, V, D[X, Y] <: MapDiffLike[X, Y, D] with MapDiff[X, Y]](self: MapBehavior[K, V, D]) =
-    new MapBehaviorOps(self)
-}
+object MapBehavior {
+  trait MapBehaviorSyntax {
+    type MapBehavior[K, V, D[X, Y] <: MapDiffLike[X, Y, D] with MapDiff[X, Y]] = IncrementalBehavior[Map[K, V], D[K, V]]
+    implicit def ToMapBehaviorOps[K, V, D[X, Y] <: MapDiffLike[X, Y, D] with MapDiff[X, Y]](self: MapBehavior[K, V, D]) =
+      new MapBehaviorOps(self)
+  }
 
-object MapBehavior extends MapBehaviorSyntax {
-  sealed trait MapDiff[K, V] extends MapDiffLike[K, V, MapDiff]
-
-  sealed trait MapDiffLike[K, V, +This[_, _]] extends Diff[(K, V), Map[K, V]] { self: MapDiff[K, V] =>
+  sealed trait MapDiffLike[K, V, +This[_, _]] extends Diff[(K, V), Map[K, V]] {
     def sizeDiff: Int
     def mapValue[B](f: V => B)(implicit cbf: CanBuildFrom[Map[K, V], (K, B), Map[K, B]]): This[K, B]
   }
+
+  sealed trait MapDiff[K, V] extends MapDiffLike[K, V, MapDiff]
 
   case class Merged[K, V](diffs: MapDiff[K, V]*) extends MapDiffLike[K, V, Merged] with MapDiff[K, V] {
     val sizeDiff = diffs.map(_.sizeDiff).sum

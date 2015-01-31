@@ -1,17 +1,18 @@
 package hokko.collection
 
-import SeqBehavior._
-import hokko.core.{ DiscreteBehavior, Event, IncrementalBehavior }
+import hokko.core.{ Behavior, DiscreteBehavior, Event, IncrementalBehavior }
 import scala.collection.{ TraversableLike, TraversableOnce }
 import scala.collection.generic.CanBuildFrom
 import scala.language.{ higherKinds, implicitConversions }
 
-class SeqBehaviorOps[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]] private[collection] (
-  val self: SeqBehavior[A, D]
+class SeqBehaviorOps[A, D[E] <: SeqBehavior.SeqDiffLike[E, D] with SeqBehavior.SeqDiff[E]] private[collection] (
+  val self: IncrementalBehavior[Seq[A], D[A]]
 ) extends AnyVal {
-  def size: DiscreteBehavior[Int] = {
+  import SeqBehavior._
+
+  def size: IncrementalBehavior[Int, Int] = {
     val initialSize = self.initial.size
-    self.deltas.fold(initialSize) { _ + _.sizeDiff }
+    self.deltas.map(_.sizeDiff).fold(initialSize) { _ + _ }
   }
 
   def incrementalMap[B](f: A => B)(
@@ -37,19 +38,19 @@ class SeqBehaviorOps[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]] private[colle
     selfPatch(lasts)(Snoc(_))
 }
 
-trait SeqBehaviorSyntax {
-  type SeqBehavior[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]] = IncrementalBehavior[Seq[A], D[A]]
-  implicit def ToSeqBehaviorOps[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]](self: SeqBehavior[A, D]) =
-    new SeqBehaviorOps(self)
-}
+object SeqBehavior {
+  trait SeqBehaviorSyntax {
+    type SeqBehavior[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]] = IncrementalBehavior[Seq[A], D[A]]
+    implicit def ToSeqBehaviorOps[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]](self: SeqBehavior[A, D]) =
+      new SeqBehaviorOps(self)
+  }
 
-object SeqBehavior extends SeqBehaviorSyntax {
-  sealed trait SeqDiff[A] extends SeqDiffLike[A, SeqDiff]
-
-  sealed trait SeqDiffLike[A, +This[_]] extends Diff[A, Seq[A]] { self: SeqDiff[A] =>
+  sealed trait SeqDiffLike[A, +This[_]] extends Diff[A, Seq[A]] {
     def sizeDiff: Int
     def map[B](f: A => B)(implicit cbf: CanBuildFrom[Seq[A], B, Seq[B]]): This[B]
   }
+
+  sealed trait SeqDiff[A] extends SeqDiffLike[A, SeqDiff]
 
   case class Merged[A](diffs: SeqDiff[A]*) extends SeqDiffLike[A, Merged] with SeqDiff[A] {
     val sizeDiff = diffs.map(_.sizeDiff).sum
