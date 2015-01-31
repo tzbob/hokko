@@ -39,6 +39,11 @@ class SeqBehaviorOps[A, D[E] <: SeqBehavior.SeqDiffLike[E, D] with SeqBehavior.S
 }
 
 object SeqBehavior {
+  def empty[A]: SeqBehavior[A, Nothing] =
+    fromSeq(Seq.empty[A])
+  def fromSeq[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]](set: Seq[A]): SeqBehavior[A, D] =
+    IncrementalBehavior.constant(set)
+
   trait SeqBehaviorSyntax {
     type SeqBehavior[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]] = IncrementalBehavior[Seq[A], D[A]]
     implicit def ToSeqBehaviorOps[A, D[E] <: SeqDiffLike[E, D] with SeqDiff[E]](self: SeqBehavior[A, D]) =

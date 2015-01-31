@@ -39,6 +39,11 @@ class SetBehaviorOps[A, D[E] <: SetBehavior.SetDiffLike[E, D] with SetBehavior.S
 }
 
 object SetBehavior {
+  def empty[A]: SetBehavior[A, Nothing] =
+    fromSet(Set.empty[A])
+  def fromSet[A, D[E] <: SetDiffLike[E, D] with SetDiff[E]](set: Set[A]): SetBehavior[A, D] =
+    IncrementalBehavior.constant(set)
+
   trait SetBehaviorSyntax {
     type SetBehavior[A, D[E] <: SetDiffLike[E, D] with SetDiff[E]] = IncrementalBehavior[Set[A], D[A]]
     implicit def ToSetBehaviorOps[A, D[E] <: SetDiffLike[E, D] with SetDiff[E]](self: SetBehavior[A, D]) =
