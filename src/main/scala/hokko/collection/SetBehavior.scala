@@ -10,11 +10,6 @@ class SetBehaviorOps[A, D[E] <: SetBehavior.SetDiffLike[E, D] with SetBehavior.S
 ) extends AnyVal {
   import SetBehavior._
 
-  def size: IncrementalBehavior[Int, Int] = {
-    val initialSize = self.initial.size
-    self.deltas.map(_.sizeDiff).fold(initialSize) { _ + _ }
-  }
-
   def incrementalMap[B](f: A => B)(
     implicit
     cbfMap: CanBuildFrom[Set[A], B, Set[B]],
