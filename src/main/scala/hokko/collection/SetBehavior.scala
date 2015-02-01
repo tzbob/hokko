@@ -27,8 +27,8 @@ class SetBehaviorOps[A, D[E] <: SetBehavior.SetDiffLike[E, D] with SetBehavior.S
 
   private def selfPatch[B](evt: Event[B])(f: B => SetDiff[A]): SetBehavior[A, SetDiff] = {
     val conses = evt.map(f)
-    conses.unionWith(self.deltas)(identity)(x => x: SetDiff[A]) { (left, right) => Merged(left, right) }
-    conses.fold(self.initial) { (acc, diff) => diff.patch(acc) }
+    val merged = conses.unionWith(self.deltas)(identity)(x => x: SetDiff[A]) { (left, right) => Merged(left, right) }
+    merged.fold(self.initial) { (acc, diff) => diff.patch(acc) }
   }
 
   def +(additions: Event[A])(implicit cbfId: CanBuildFrom[Set[A], A, Set[A]]): SetBehavior[A, SetDiff] =

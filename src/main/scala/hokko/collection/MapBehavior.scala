@@ -27,8 +27,8 @@ class MapBehaviorOps[K, V, D[X, Y] <: MapBehavior.MapDiffLike[X, Y, D] with MapB
 
   private def selfPatch[B](evt: Event[B])(f: B => MapDiff[K, V]): MapBehavior[K, V, MapDiff] = {
     val conses = evt.map(f)
-    conses.unionWith(self.deltas)(identity)(x => x: MapDiff[K, V]) { (left, right) => Merged(left, right) }
-    conses.fold(self.initial) { (acc, diff) => diff.patch(acc) }
+    val merged = conses.unionWith(self.deltas)(identity)(x => x: MapDiff[K, V]) { (left, right) => Merged(left, right) }
+    merged.fold(self.initial) { (acc, diff) => diff.patch(acc) }
   }
 
   def +(kvs: Event[(K, V)])(implicit cbfId: CanBuildFrom[Map[K, V], (K, V), Map[K, V]]): MapBehavior[K, V, MapDiff] =

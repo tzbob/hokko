@@ -27,8 +27,8 @@ class SeqBehaviorOps[A, D[E] <: SeqBehavior.SeqDiffLike[E, D] with SeqBehavior.S
 
   private def selfPatch[B](evt: Event[B])(f: B => SeqDiff[A]): SeqBehavior[A, SeqDiff] = {
     val conses = evt.map(f)
-    conses.unionWith(self.deltas)(identity)(x => x: SeqDiff[A]) { (left, right) => Merged(left, right) }
-    conses.fold(self.initial) { (acc, diff) => diff.patch(acc) }
+    val merged = conses.unionWith(self.deltas)(identity)(x => x: SeqDiff[A]) { (left, right) => Merged(left, right) }
+    merged.fold(self.initial) { (acc, diff) => diff.patch(acc) }
   }
 
   def +:(heads: Event[A])(implicit cbfId: CanBuildFrom[Seq[A], A, Seq[A]]): SeqBehavior[A, SeqDiff] =
