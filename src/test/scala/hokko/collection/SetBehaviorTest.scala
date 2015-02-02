@@ -1,8 +1,6 @@
 package hokko.collection
 
-import hokko.core.Engine
-import hokko.core.Event
-import hokko.core.FRPTestSuite
+import hokko.core.{ Engine, Event, FRPTestSuite }
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Prop._
 

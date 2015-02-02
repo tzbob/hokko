@@ -46,14 +46,12 @@ object SetBehavior {
   }
 
   sealed trait SetDiffLike[A, +This[_]] extends Diff[A, Set[A]] {
-    def sizeDiff: Int
     def map[B](f: A => B)(implicit cbf: CanBuildFrom[Set[A], B, Set[B]]): This[B]
   }
 
   sealed trait SetDiff[A] extends SetDiffLike[A, SetDiff]
 
   case class Merged[A](diffs: SetDiff[A]*) extends SetDiffLike[A, Merged] with SetDiff[A] {
-    val sizeDiff = diffs.map(_.sizeDiff).sum
     def patch(patchee: Set[A])(implicit cbf: CanBuildFrom[Set[A], A, Set[A]]): Set[A] =
       diffs.foldLeft(patchee) { (acc, diff) => diff.patch(acc) }
     def map[B](f: A => B)(implicit cbf: CanBuildFrom[Set[A], B, Set[B]]): Merged[B] =
@@ -61,7 +59,6 @@ object SetBehavior {
   }
 
   case class Add[A](addition: A) extends SetDiffLike[A, Add] with SetDiff[A] {
-    val sizeDiff = 1
     def patch(patchee: Set[A])(implicit cbf: CanBuildFrom[Set[A], A, Set[A]]): Set[A] =
       patchee + addition
     def map[B](f: A => B)(implicit cbf: CanBuildFrom[Set[A], B, Set[B]]): Add[B] =
@@ -69,7 +66,6 @@ object SetBehavior {
   }
 
   case class Remove[A](element: A) extends SetDiffLike[A, Remove] with SetDiff[A] {
-    val sizeDiff = 1
     def patch(patchee: Set[A])(implicit cbf: CanBuildFrom[Set[A], A, Set[A]]): Set[A] =
       patchee - element
     def map[B](f: A => B)(implicit cbf: CanBuildFrom[Set[A], B, Set[B]]): Remove[B] =

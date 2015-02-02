@@ -10,11 +10,6 @@ class MapBehaviorOps[K, V, D[X, Y] <: MapBehavior.MapDiffLike[X, Y, D] with MapB
 ) extends AnyVal {
   import MapBehavior._
 
-  def size: DiscreteBehavior[Int] = {
-    val initialSize = self.initial.size
-    self.deltas.fold(initialSize) { _ + _.sizeDiff }
-  }
-
   def incrementalMapValues[B](f: V => B)(
     implicit
     cbfMap: CanBuildFrom[Map[K, V], (K, B), Map[K, B]],
@@ -50,14 +45,12 @@ object MapBehavior {
   }
 
   sealed trait MapDiffLike[K, V, +This[_, _]] extends Diff[(K, V), Map[K, V]] {
-    def sizeDiff: Int
     def mapValue[B](f: V => B)(implicit cbf: CanBuildFrom[Map[K, V], (K, B), Map[K, B]]): This[K, B]
   }
 
   sealed trait MapDiff[K, V] extends MapDiffLike[K, V, MapDiff]
 
   case class Merged[K, V](diffs: MapDiff[K, V]*) extends MapDiffLike[K, V, Merged] with MapDiff[K, V] {
-    val sizeDiff = diffs.map(_.sizeDiff).sum
     def patch(patchee: Map[K, V])(implicit cbf: CanBuildFrom[Map[K, V], (K, V), Map[K, V]]): Map[K, V] =
       diffs.foldLeft(patchee) { (acc, diff) => diff.patch(acc) }
     def mapValue[B](f: V => B)(implicit cbf: CanBuildFrom[Map[K, V], (K, B), Map[K, B]]): Merged[K, B] =
@@ -65,7 +58,6 @@ object MapBehavior {
   }
 
   case class Add[K, V](kv: (K, V)) extends MapDiffLike[K, V, Add] with MapDiff[K, V] {
-    val sizeDiff = 1
     def patch(patchee: Map[K, V])(implicit cbf: CanBuildFrom[Map[K, V], (K, V), Map[K, V]]): Map[K, V] =
       patchee + kv
     def mapValue[B](f: V => B)(implicit cbf: CanBuildFrom[Map[K, V], (K, B), Map[K, B]]): Add[K, B] = {
@@ -75,7 +67,6 @@ object MapBehavior {
   }
 
   case class Delete[K, V](key: K) extends MapDiffLike[K, V, Delete] with MapDiff[K, V] {
-    val sizeDiff = 1
     def patch(patchee: Map[K, V])(implicit cbf: CanBuildFrom[Map[K, V], (K, V), Map[K, V]]): Map[K, V] =
       patchee - key
     def mapValue[B](f: V => B)(implicit cbf: CanBuildFrom[Map[K, V], (K, B), Map[K, B]]): Delete[K, B] =
