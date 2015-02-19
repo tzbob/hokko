@@ -3,9 +3,13 @@ package hokko.core
 import scala.annotation.tailrec
 import scala.language.existentials
 import scala.scalajs.js.annotation.JSExport
+import scalajs2jsscala.annotation.JsScalaProxy
 
+@JsScalaProxy
 class Engine private (exitNodes: Seq[Node[_]]) {
-  private[this] var handlers = Set.empty[Pulses => Unit]
+  import Engine._
+
+  private var handlers = Set.empty[Pulses => Unit]
   private[this] var memoTable = HMap.empty[TickContext.StateRelation]
   private[this] def currentContext() = TickContext.fromMemoTable(memoTable)
 
@@ -18,7 +22,7 @@ class Engine private (exitNodes: Seq[Node[_]]) {
     }
     val endContext = propagate(startContext)
     handlers.foreach { handler =>
-      handler(new Pulses(endContext))
+      handler(new Pulses(this, endContext))
     }
   }
 
@@ -38,34 +42,37 @@ class Engine private (exitNodes: Seq[Node[_]]) {
     }
 
   @JSExport
-  def askCurrentValues(): Values = new Values(propagate(currentContext()))
+  def askCurrentValues(): Values = new Values(this, propagate(currentContext()))
 
   @JSExport
   def subscribeForPulses(handler: Pulses => Unit): Subscription = {
     handlers += handler
-    new Subscription(handler)
+    new Subscription(this, handler)
   }
+}
 
-  class Subscription private[Engine] (handler: Pulses => Unit) {
+@JsScalaProxy
+object Engine {
+  @JsScalaProxy
+  class Subscription private[Engine] (engine: Engine, handler: Pulses => Unit) {
     @JSExport
-    def cancel(): Unit = handlers -= handler
+    def cancel(): Unit = engine.handlers -= handler
   }
 
-  class Values private[Engine] (context: TickContext) {
+  @JsScalaProxy
+  class Values private[Engine] (engine: Engine, context: TickContext) {
     @JSExport
     def apply[A](beh: Behavior[A]): Option[A] =
       context.getThunk(beh.node).map(_.force)
   }
 
-  class Pulses private[Engine] (context: TickContext) {
+  @JsScalaProxy
+  class Pulses private[Engine] (engine: Engine, context: TickContext) {
     @JSExport
     def apply[A](ev: Event[A]): Option[A] =
       context.getPulse(ev.node)
   }
 
-}
-
-object Engine {
   @JSExport
   def compile(events: List[Event[_]])(behaviors: List[Behavior[_]]): Engine =
     compile(events: _*)(behaviors: _*)

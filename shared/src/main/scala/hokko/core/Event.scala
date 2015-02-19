@@ -1,8 +1,9 @@
 package hokko.core
 
-import hokko.syntax.EventSyntax
 import scala.scalajs.js.annotation.JSExport
+import scalajs2jsscala.annotation.JsScalaProxy
 
+@JsScalaProxy
 trait Event[+A] {
   private[core] val node: Push[A]
 
@@ -17,11 +18,34 @@ trait Event[+A] {
   @JSExport
   def collect[B, AA >: A](fb: A => Option[B]): Event[B] =
     Event.fromNode(Event.Collect(this, fb))
+
+  // Derived ops
+
+  @JSExport
+  def hold[AA >: A](initial: AA): DiscreteBehavior[AA] =
+    fold(initial) { (_, n) => n }
+
+  @JSExport
+  def mergeWith[AA >: A](events: Event[AA]*): Event[Seq[AA]] = {
+    val selfSeq: Event[Seq[AA]] = this.map(Seq(_))
+    events.foldLeft(selfSeq)  { (acc, event) =>
+      acc.unionWith(event)(identity)(Seq(_))(_ :+ _)
+    }
+  }
+
+  @JSExport
+  def map[B](f: A => B): Event[B] =
+    collect { a => Some(f(a)) }
+
+  @JSExport
+  def dropIf[B](f: A => Boolean): Event[A] =
+    collect { a => if (f(a)) None else Some(a) }
 }
 
 sealed trait EventSource[+A] extends Event[A]
 
-object Event extends EventSyntax {
+@JsScalaProxy
+object Event {
   private[core] def fromNode[A](n: Push[A]): Event[A] =
     new Event[A] { val node = n }
 
@@ -30,6 +54,13 @@ object Event extends EventSyntax {
 
   @JSExport
   def source[A]: EventSource[A] = new EventSource[A] { val node = empty[A].node }
+
+  @JSExport
+  def merge[A](events: Seq[Event[A]]): Event[Seq[A]] = events match {
+    case Nil => empty
+    case x :: Nil => x.map(Seq(_))
+    case x :: xs => x.mergeWith(xs:_*)
+  }
 
   // primitive node implementations
 

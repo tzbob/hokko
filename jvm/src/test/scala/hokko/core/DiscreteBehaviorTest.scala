@@ -1,6 +1,5 @@
 package hokko.core
 
-import hokko.syntax._
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Prop._
 
@@ -20,7 +19,7 @@ class DiscreteBehaviorTest extends FRPTestSuite {
       var x = 0
       val src = Event.source[Unit]
       val b = Behavior.fromPoll(() => x)
-      val db = b.signalChanges(src)
+      val db = b.markChanges(src)
       it("should retrieve it's current value from the poll at the signaled time") {
         val occurrences = mkOccurrences(db.changes) { implicit engine =>
           x = 5
@@ -33,11 +32,11 @@ class DiscreteBehaviorTest extends FRPTestSuite {
     }
     describe("that are reverse applied ") {
       val src = Event.source[Int]
-      val bParam = src.fold(0) { (acc, n) => n }
+      val bParam: IncrementalBehavior[Int, Int] = src.fold(0) { (acc, n) => n }
 
       it("to constant functions should simply apply the functon and have its results on .changes") {
         val const = DiscreteBehavior.constant((_: Int) * 2)
-        val bApplied = bParam.reverseApply(const)
+        val bApplied = bParam.discreteReverseApply(const)
         check { (ints: List[Int]) =>
           val occs = mkOccurrences(bApplied.changes) { implicit engine =>
             fireAll(src, ints)
@@ -50,7 +49,7 @@ class DiscreteBehaviorTest extends FRPTestSuite {
 
       it("to changing functions should simply apply the functon and have its results on .changes") {
         val bPoorMansDouble = bParam.map { i => (int: Int) => int + i }
-        val bApplied = bParam.reverseApply(bPoorMansDouble)
+        val bApplied = bParam.discreteReverseApply(bPoorMansDouble)
         check { (ints: List[Int]) =>
           val occs = mkOccurrences(bApplied.changes) { implicit engine =>
             fireAll(src, ints)

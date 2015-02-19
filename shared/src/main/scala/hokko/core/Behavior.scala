@@ -1,6 +1,5 @@
 package hokko.core
 
-import hokko.syntax.BehaviorSyntax
 import scala.scalajs.js.annotation.JSExport
 import scalajs2jsscala.annotation.JsScalaProxy
 
@@ -19,9 +18,21 @@ trait Behavior[+A] {
   @JSExport
   def withChanges[AA >: A](changes: Event[AA]): DiscreteBehavior[AA] =
     DiscreteBehavior.fromBehaviorAndChanges(this, changes)
+
+  // Derived ops
+
+  @JSExport
+  def map[B](f: A => B): Behavior[B] = reverseApply(Behavior.constant(f))
+
+  @JSExport
+  def markChanges(signals: Event[Unit]): DiscreteBehavior[A] = {
+    val ev: Event[A => A] = signals.map { _ => identity }
+    withChanges(snapshotWith(ev))
+  }
 }
 
-object Behavior extends BehaviorSyntax {
+@JsScalaProxy
+object Behavior {
   /*
    fromPollWithDeps[A](list: Node[A], f: TickContext => IO[A]): Behavior[A]
    Event[Future[A]].wormhole: Event[A]

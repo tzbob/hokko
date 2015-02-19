@@ -3,6 +3,6 @@ package scalajs2jsscala {
 
     import scala.annotation.StaticAnnotation
 
-    class JsScalaProxy extends StaticAnnotation
+    class JsScalaProxy(deps: String*) extends StaticAnnotation
   }
 }
