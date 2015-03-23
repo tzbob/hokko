@@ -8,7 +8,7 @@ class BehaviorTest extends FRPTestSuite {
     describe("that are constant") {
       val const = Behavior.constant(5)
       it("should always return the same value and its changes should never have occurrences") {
-        val engine = Engine.compile()(const)
+        val engine = Engine.compile(Seq.empty, Seq(const))
         val currentValues = engine.askCurrentValues()
         assert(currentValues(const).get === 5)
       }
@@ -18,7 +18,7 @@ class BehaviorTest extends FRPTestSuite {
       it("should represent the current state of the function") {
         var i = 0
         val beh = Behavior.fromPoll(() => i)
-        val engine = Engine.compile()(beh)
+        val engine = Engine.compile(Seq.empty, Seq(beh))
         check { (int: Int) =>
           i = int
           val values = engine.askCurrentValues()
@@ -36,7 +36,7 @@ class BehaviorTest extends FRPTestSuite {
 
       it("to changing functions should simply apply the functon") {
         val bApplied = bParam.reverseApply(bFun)
-        val engine = Engine.compile()(bApplied)
+        val engine = Engine.compile(Seq.empty, Seq(bApplied))
         check { (int: Int) =>
           param = int
           f = (i: Int) => i + int
@@ -58,7 +58,7 @@ class BehaviorTest extends FRPTestSuite {
             ints.foreach { i =>
               val f = (x: Int) => i + x
               param = i
-              engine.fire(src -> f)
+              engine.fire(List(src -> f))
             }
           }
           occs == ints.map(_ * 2)

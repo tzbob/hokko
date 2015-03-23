@@ -26,9 +26,16 @@ trait Event[+A] {
     fold(initial) { (_, n) => n }
 
   @JSExport
+  def unionLeft[AA >: A](other: Event[AA]): Event[AA] =
+    unionWith(other)(x => x: AA)(identity) { (left, _) => left }
+
+  @JSExport
+  def unionRight[AA >: A](other: Event[AA]): Event[AA] =
+    unionWith(other)(x => x: AA)(identity) { (_, right) => right }
+
   def mergeWith[AA >: A](events: Event[AA]*): Event[Seq[AA]] = {
     val selfSeq: Event[Seq[AA]] = this.map(Seq(_))
-    events.foldLeft(selfSeq)  { (acc, event) =>
+    events.foldLeft(selfSeq) { (acc, event) =>
       acc.unionWith(event)(identity)(Seq(_))(_ :+ _)
     }
   }
@@ -45,6 +52,7 @@ trait Event[+A] {
 sealed trait EventSource[+A] extends Event[A]
 
 @JsScalaProxy
+@JSExport
 object Event {
   private[core] def fromNode[A](n: Push[A]): Event[A] =
     new Event[A] { val node = n }
@@ -57,9 +65,9 @@ object Event {
 
   @JSExport
   def merge[A](events: Seq[Event[A]]): Event[Seq[A]] = events match {
-    case Nil => empty
-    case x :: Nil => x.map(Seq(_))
-    case x :: xs => x.mergeWith(xs:_*)
+    case Seq() => empty
+    case Seq(x) => x.map(Seq(_))
+    case Seq(x, xs @ _*) => x.mergeWith(xs: _*)
   }
 
   // primitive node implementations

@@ -13,7 +13,7 @@ class EventTest extends FRPTestSuite {
         "the initial value when the source event has no occurrences") {
         check { (i: Int) =>
           val beh = src.fold(i)(_ + _)
-          val engine = Engine.compile()(beh)
+          val engine = Engine.compile(Seq.empty, Seq(beh))
           val currentValues = engine.askCurrentValues()
           currentValues(beh).get == i
         }
@@ -22,7 +22,7 @@ class EventTest extends FRPTestSuite {
       it("should have a current value representing the total accumulation of occurrences") {
         val beh = src.fold(0)(_ + _)
         check { (ints: List[Int]) =>
-          val engine = Engine.compile()(beh)
+          val engine = Engine.compile(Seq.empty, Seq(beh))
           fireAll(src, ints)(engine)
           val currentValues = engine.askCurrentValues()
           currentValues(beh).get == ints.sum
@@ -54,7 +54,7 @@ class EventTest extends FRPTestSuite {
         check { (intDoubles: List[(Int, Double)]) =>
           val occurrences = mkOccurrences(union) { engine =>
             intDoubles.foreach {
-              case (i, d) => engine.fire(src1 -> i, src2 -> d)
+              case (i, d) => engine.fire(List(src1 -> i, src2 -> d))
             }
           }
           occurrences == intDoubles.map {

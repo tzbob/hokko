@@ -24,6 +24,7 @@ trait DiscreteBehavior[+A] extends Behavior[A] {
 }
 
 @JsScalaProxy
+@JSExport
 object DiscreteBehavior {
   @JSExport
   def constant[A](init: A): DiscreteBehavior[A] = fromNode(ConstantNode(init))

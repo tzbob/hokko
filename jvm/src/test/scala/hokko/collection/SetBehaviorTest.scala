@@ -13,13 +13,13 @@ class SetBehaviorTest extends FRPTestSuite {
       val addedSets = emptySet + src
 
       it("should stay the same when no events occur") {
-        val engine = Engine.compile()(addedSets)
+        val engine = Engine.compile(Seq.empty, Seq(addedSets))
         assert(engine.askCurrentValues()(addedSets).get === Set())
       }
 
       it("should build up all occurrences") {
         check { (ints: List[Int]) =>
-          val engine = Engine.compile()(addedSets)
+          val engine = Engine.compile(Seq.empty, Seq(addedSets))
           fireAll(src, ints)(engine)
           engine.askCurrentValues()(addedSets).get === ints.toSet
         }
@@ -35,7 +35,7 @@ class SetBehaviorTest extends FRPTestSuite {
 
       it("should remove all occurrences") {
         check { (ints: List[Int]) =>
-          val engine = Engine.compile()(removedSet)
+          val engine = Engine.compile(Seq.empty, Seq(removedSet))
           fireAll(src, ints)(engine)
           engine.askCurrentValues()(removedSet).get === (default -- ints)
         }
@@ -47,7 +47,7 @@ class SetBehaviorTest extends FRPTestSuite {
 
       it("should map all values accordingly") {
         check { (ints: List[Int]) =>
-          val engine = Engine.compile()(mappedSet)
+          val engine = Engine.compile(Seq.empty, Seq(mappedSet))
           fireAll(src, ints)(engine)
           engine.askCurrentValues()(mappedSet).get === (default ++ ints).map(_.toString)
         }

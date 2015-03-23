@@ -12,13 +12,13 @@ class MapBehaviorTest extends FRPTestSuite {
 
     describe("that expands from add events") {
       it("should stay the same when no events occur") {
-        val engine = Engine.compile()(addedMaps)
+        val engine = Engine.compile(Seq.empty, Seq(addedMaps))
         assert(engine.askCurrentValues()(addedMaps).get === Map())
       }
 
       it("should build up all occurrences") {
         check { (ints: List[(Int, String)]) =>
-          val engine = Engine.compile()(addedMaps)
+          val engine = Engine.compile(Seq.empty, Seq(addedMaps))
           fireAll(src, ints)(engine)
           engine.askCurrentValues()(addedMaps).get === ints.toMap
         }
@@ -30,7 +30,7 @@ class MapBehaviorTest extends FRPTestSuite {
         check { (ints: List[(Int, String)]) =>
           val ints = List((1, "hello"), (2, "hello"))
           val neutralMaps = addedMaps - src.map(_._1)
-          val engine = Engine.compile()(neutralMaps)
+          val engine = Engine.compile(Seq.empty, Seq(neutralMaps))
           fireAll(src, ints)(engine)
           engine.askCurrentValues()(neutralMaps).get === Map()
         }
@@ -46,7 +46,7 @@ class MapBehaviorTest extends FRPTestSuite {
 
       it("should map all values accordingly") {
         check { (ints: List[(Int, String)]) =>
-          val engine = Engine.compile()(mappedMap)
+          val engine = Engine.compile(Seq.empty, Seq(mappedMap))
           fireAll(src, ints)(engine)
           engine.askCurrentValues()(mappedMap).get === (default ++ ints).mapValues(_ + "mapped")
         }

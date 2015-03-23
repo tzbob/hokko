@@ -16,15 +16,17 @@ class Engine private (exitNodes: Seq[Node[_]]) {
   private val nodeToDescendants = Engine.buildDescendants(exitNodes)
   private val orderedNodes = Engine.sortedNodes(exitNodes, nodeToDescendants)
 
-  def fire(pulses: (EventSource[A], A) forSome { type A }*): Unit = this.synchronized {
-    val startContext = pulses.foldLeft(currentContext()) {
-      case (acc, (src, x)) => acc.addPulse(src.node, x)
+  @JSExport
+  def fire(pulses: Seq[(EventSource[A], A) forSome { type A }]): Unit =
+    this.synchronized {
+      val startContext = pulses.foldLeft(currentContext()) {
+        case (acc, (src, x)) => acc.addPulse(src.node, x)
+      }
+      val endContext = propagate(startContext)
+      handlers.foreach { handler =>
+        handler(new Pulses(this, endContext))
+      }
     }
-    val endContext = propagate(startContext)
-    handlers.foreach { handler =>
-      handler(new Pulses(this, endContext))
-    }
-  }
 
   private[this] def propagate(startContext: TickContext): TickContext = {
     val endContext = propagationResults(startContext)
@@ -52,6 +54,7 @@ class Engine private (exitNodes: Seq[Node[_]]) {
 }
 
 @JsScalaProxy
+@JSExport
 object Engine {
   @JsScalaProxy
   class Subscription private[Engine] (engine: Engine, handler: Pulses => Unit) {
@@ -74,10 +77,7 @@ object Engine {
   }
 
   @JSExport
-  def compile(events: List[Event[_]])(behaviors: List[Behavior[_]]): Engine =
-    compile(events: _*)(behaviors: _*)
-
-  def compile(events: Event[_]*)(behaviors: Behavior[_]*): Engine =
+  def compile(events: Seq[Event[_]], behaviors: Seq[Behavior[_]]): Engine =
     new Engine(events.map(_.node) ++ behaviors.map(_.node))
 
   private[core] def buildDescendants(nodes: Seq[Node[_]]): Map[Node[_], Set[Node[_]]] = {

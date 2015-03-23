@@ -9,9 +9,18 @@ trait IncrementalBehavior[+A, +DeltaA] extends DiscreteBehavior[A] {
 
   @JSExport
   def deltas: Event[DeltaA]
+
+  @JSExport
+  def map[B, DeltaB](accumulator: (B, DeltaB) => B)(fa: A => B)(fb: DeltaA => DeltaB): IncrementalBehavior[B, DeltaB] = {
+    val newDeltas = deltas.map(fb)
+    val newInitial = fa(initial)
+    newDeltas.fold(newInitial)(accumulator)
+  }
+
 }
 
 @JsScalaProxy
+@JSExport
 object IncrementalBehavior {
   @JSExport
   def constant[A, DeltaA](init: A): IncrementalBehavior[A, DeltaA] =

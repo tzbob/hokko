@@ -32,6 +32,7 @@ trait Behavior[+A] {
 }
 
 @JsScalaProxy
+@JSExport
 object Behavior {
   /*
    fromPollWithDeps[A](list: Node[A], f: TickContext => IO[A]): Behavior[A]

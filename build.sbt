@@ -31,7 +31,11 @@ lazy val hokko = crossProject.in(file(".")).
   ).
   jsSettings(
     // Add JS-specific settings here
-    scalaVersion := "2.10.4"
+    scalaVersion := "2.10.4",
+    libraryDependencies ++= Seq(
+      // This runtime has to be included whenever scala-js-2-js-scala is used
+      "com.github.tzbob" % "scala-js-2-js-scala-runtime_sjs0.6_2.10" % "0.1-SNAPSHOT" changing()
+    )
   )
 
 lazy val hokkoJVM = hokko.jvm

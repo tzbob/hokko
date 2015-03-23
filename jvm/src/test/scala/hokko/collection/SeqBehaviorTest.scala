@@ -14,13 +14,13 @@ class SeqBehaviorTest extends FRPTestSuite {
       val addedSeqs = src +: emptySeq
 
       it("should stay the same when no events occur") {
-        val engine = Engine.compile()(addedSeqs)
+        val engine = Engine.compile(Seq.empty, Seq(addedSeqs))
         assert(engine.askCurrentValues()(addedSeqs).get === Seq())
       }
 
       it("should build up all occurrences in cons") {
         check { (ints: List[Int]) =>
-          val engine = Engine.compile()(addedSeqs)
+          val engine = Engine.compile(Seq.empty, Seq(addedSeqs))
           fireAll(src, ints)(engine)
           engine.askCurrentValues()(addedSeqs).get === ints.reverse.toSeq
         }
@@ -29,7 +29,7 @@ class SeqBehaviorTest extends FRPTestSuite {
       it("should build up all occurrences in snoc") {
         check { (ints: List[Int]) =>
           val addedSeqs = emptySeq :+ src
-          val engine = Engine.compile()(addedSeqs)
+          val engine = Engine.compile(Seq.empty, Seq(addedSeqs))
           fireAll(src, ints)(engine)
           engine.askCurrentValues()(addedSeqs).get === ints.toSeq
         }
@@ -45,7 +45,7 @@ class SeqBehaviorTest extends FRPTestSuite {
 
       it("should map all values accordingly") {
         check { (ints: List[Int]) =>
-          val engine = Engine.compile()(mappedSeq)
+          val engine = Engine.compile(Seq.empty, Seq(mappedSeq))
           fireAll(src, ints)(engine)
           engine.askCurrentValues()(mappedSeq).get === (ints.reverse ++ default ++ ints).map(_.toString)
         }
