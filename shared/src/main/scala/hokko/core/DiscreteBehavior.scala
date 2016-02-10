@@ -21,6 +21,14 @@ trait DiscreteBehavior[+A] extends Behavior[A] {
   @JSExport
   override def map[B](f: A => B): DiscreteBehavior[B] =
     discreteReverseApply(DiscreteBehavior.constant(f))
+
+  @JSExport
+  def discreteMap2[B, C](b: DiscreteBehavior[B])(f: (A, B) => C): DiscreteBehavior[C] =
+    b.discreteReverseApply(discreteReverseApply(DiscreteBehavior.constant(f.curried)))
+
+  @JSExport
+  def discreteMap3[B, C, D](b: DiscreteBehavior[B], c: DiscreteBehavior[C])(f: (A, B, C) => D): DiscreteBehavior[D] =
+    c.discreteReverseApply(b.discreteReverseApply(discreteReverseApply(DiscreteBehavior.constant(f.curried))))
 }
 
 @JsScalaProxy

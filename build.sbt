@@ -19,9 +19,9 @@ lazy val hokko = crossProject.in(file(".")).
   jvmSettings(
     // Add JVM-specific settings here
     scalaOrganization := "org.scala-lang.virtualized",
-    scalaVersion := "2.10.2",
+    scalaVersion := "2.11.2",
     libraryDependencies ++= Seq(
-      compilerPlugin("org.scalamacros" % "paradise" % "2.1.0-M5" cross CrossVersion.full),
+      compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
       "com.github.tzbob" %% "scala-js-2-js-scala" % "0.1-SNAPSHOT" changing(),
       "org.scala-js" %% "scalajs-stubs" % "0.6.0",
       "org.scalatest" %% "scalatest" % "2.2.1" % "test",
@@ -31,10 +31,10 @@ lazy val hokko = crossProject.in(file(".")).
   ).
   jsSettings(
     // Add JS-specific settings here
-    scalaVersion := "2.10.4",
+    scalaVersion := "2.11.2",
     libraryDependencies ++= Seq(
       // This runtime has to be included whenever scala-js-2-js-scala is used
-      "com.github.tzbob" % "scala-js-2-js-scala-runtime_sjs0.6_2.10" % "0.1-SNAPSHOT" changing()
+      "com.github.tzbob" % "scala-js-2-js-scala-runtime_sjs0.6_2.11" % "0.1-SNAPSHOT" changing()
     )
   )
 

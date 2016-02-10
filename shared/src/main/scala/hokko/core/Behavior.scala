@@ -25,6 +25,17 @@ trait Behavior[+A] {
   def map[B](f: A => B): Behavior[B] = reverseApply(Behavior.constant(f))
 
   @JSExport
+  def map2[B, C](b: Behavior[B])(f: (A, B) => C): Behavior[C] =
+    b.reverseApply(reverseApply(Behavior.constant(f.curried)))
+
+  @JSExport
+  def map3[B, C, D](b: Behavior[B], c: Behavior[C])(f: (A, B, C) => D): Behavior[D] =
+    c.reverseApply(b.reverseApply(reverseApply(Behavior.constant(f.curried))))
+
+  @JSExport
+  def sampledBy(ev: Event[_]): Event[A] = snapshotWith(ev.map(_ => identity[A] _))
+
+  @JSExport
   def markChanges(signals: Event[Unit]): DiscreteBehavior[A] = {
     val ev: Event[A => A] = signals.map { _ => identity }
     withChanges(snapshotWith(ev))
@@ -34,10 +45,6 @@ trait Behavior[+A] {
 @JsScalaProxy
 @JSExport
 object Behavior {
-  /*
-   fromPollWithDeps[A](list: Node[A], f: TickContext => IO[A]): Behavior[A]
-   Event[Future[A]].wormhole: Event[A]
-   */
 
   @JSExport
   def constant[A](x: A): Behavior[A] = DiscreteBehavior.constant(x)

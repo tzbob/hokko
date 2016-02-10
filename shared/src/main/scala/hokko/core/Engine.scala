@@ -20,6 +20,7 @@ class Engine private (exitNodes: Seq[Node[_]]) {
   def fire(pulses: Seq[(EventSource[A], A) forSome { type A }]): Unit =
     this.synchronized {
       val startContext = pulses.foldLeft(currentContext()) {
+        // add initial pulses to the fire targets
         case (acc, (src, x)) => acc.addPulse(src.node, x)
       }
       val endContext = propagate(startContext)
@@ -36,7 +37,7 @@ class Engine private (exitNodes: Seq[Node[_]]) {
 
   private[this] def propagationResults(startContext: TickContext): TickContext =
     // TODO (if this is a bottleneck): to shortcut propagation as much as possible
-    // a node's action can be divided into reactions to nosiy and silent updates
+    // a node's action can be divided into reactions to noisy and silent updates
     // - propagation contexts need; queuedForSilent: Node[_] => Boolean, queuedForNoisy: Node[_] => Boolean
     // - nodes need; reactToSilent(TickContext): Update[TickContext] and reactToNoisy ...
     orderedNodes.foldLeft(startContext) { (context, node) =>
