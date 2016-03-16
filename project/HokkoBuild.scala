@@ -51,7 +51,7 @@ object HokkoBuild extends Build with CrossProjectExtra {
     // Add JS-specific settings here
     libraryDependencies ++= Seq(
       // This runtime has to be included whenever scala-js-2-js-scala is used
-      "com.github.tzbob" % "scala-js-2-js-scala-runtime_sjs0.6_2.11" % "0.1-SNAPSHOT" changing()
+      "com.github.tzbob" % "scala-js-2-js-scala-runtime_sjs0.6_2.11" % "0.2-SNAPSHOT" changing()
     )
   )
 
