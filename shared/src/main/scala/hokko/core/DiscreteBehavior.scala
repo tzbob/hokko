@@ -1,40 +1,37 @@
 package hokko.core
 
-import scala.scalajs.js.annotation.JSExport
-import scalajs2jsscala.annotation.JsScalaProxy
 
-@JsScalaProxy
 trait DiscreteBehavior[+A] extends Behavior[A] {
-  @JSExport 
+
   def changes(): Event[A]
 
-  @JSExport
+
   def discreteReverseApply[B, AA >: A](fb: DiscreteBehavior[A => B]): DiscreteBehavior[B] =
     DiscreteBehavior.fromNode(DiscreteBehavior.ReverseApply(this, fb))
 
-  @JSExport
+
   def withDeltas[DeltaA, AA >: A](init: AA, deltas: Event[DeltaA]): IncrementalBehavior[AA, DeltaA] =
     IncrementalBehavior.fromDiscreteAndDeltas(init, this, deltas)
 
   // derived ops
 
-  @JSExport
+
   override def map[B](f: A => B): DiscreteBehavior[B] =
     discreteReverseApply(DiscreteBehavior.constant(f))
 
-  @JSExport
+
   def discreteMap2[B, C](b: DiscreteBehavior[B])(f: (A, B) => C): DiscreteBehavior[C] =
     b.discreteReverseApply(discreteReverseApply(DiscreteBehavior.constant(f.curried)))
 
-  @JSExport
+
   def discreteMap3[B, C, D](b: DiscreteBehavior[B], c: DiscreteBehavior[C])(f: (A, B, C) => D): DiscreteBehavior[D] =
     c.discreteReverseApply(b.discreteReverseApply(discreteReverseApply(DiscreteBehavior.constant(f.curried))))
 }
 
-@JsScalaProxy
-@JSExport
+
+
 object DiscreteBehavior {
-  @JSExport
+
   def constant[A](init: A): DiscreteBehavior[A] = fromNode(ConstantNode(init))
 
   // Convenience traits stacked in the right order

@@ -1,16 +1,12 @@
 package hokko.core
 
-import scala.scalajs.js.annotation.JSExport
-import scalajs2jsscala.annotation.JsScalaProxy
-
-@JsScalaProxy
 trait IncrementalBehavior[+A, +DeltaA] extends DiscreteBehavior[A] {
   val initial: A
 
-  @JSExport
+
   def deltas: Event[DeltaA]
 
-  @JSExport
+
   def map[B, DeltaB](accumulator: (B, DeltaB) => B)(fa: A => B)(fb: DeltaA => DeltaB): IncrementalBehavior[B, DeltaB] = {
     val newDeltas = deltas.map(fb)
     val newInitial = fa(initial)
@@ -19,10 +15,10 @@ trait IncrementalBehavior[+A, +DeltaA] extends DiscreteBehavior[A] {
 
 }
 
-@JsScalaProxy
-@JSExport
+
+
 object IncrementalBehavior {
-  @JSExport
+
   def constant[A, DeltaA](init: A): IncrementalBehavior[A, DeltaA] =
     DiscreteBehavior.constant(init).withDeltas(init, Event.empty)
 

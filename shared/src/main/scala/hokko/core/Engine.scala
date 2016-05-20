@@ -2,10 +2,7 @@ package hokko.core
 
 import scala.annotation.tailrec
 import scala.language.existentials
-import scala.scalajs.js.annotation.JSExport
-import scalajs2jsscala.annotation.JsScalaProxy
 
-@JsScalaProxy
 class Engine private (exitNodes: Seq[Node[_]]) {
   import Engine._
 
@@ -16,7 +13,7 @@ class Engine private (exitNodes: Seq[Node[_]]) {
   private val nodeToDescendants = Engine.buildDescendants(exitNodes)
   private val orderedNodes = Engine.sortedNodes(exitNodes, nodeToDescendants)
 
-  @JSExport
+
   def fire(pulses: Seq[(EventSource[A], A) forSome { type A }]): Unit =
     this.synchronized {
       val startContext = pulses.foldLeft(currentContext()) {
@@ -44,40 +41,40 @@ class Engine private (exitNodes: Seq[Node[_]]) {
       node.updateContext(context).getOrElse(context)
     }
 
-  @JSExport
+
   def askCurrentValues(): Values = new Values(this, propagate(currentContext()))
 
-  @JSExport
+
   def subscribeForPulses(handler: Pulses => Unit): Subscription = {
     handlers += handler
     new Subscription(this, handler)
   }
 }
 
-@JsScalaProxy
-@JSExport
+
+
 object Engine {
-  @JsScalaProxy
+
   class Subscription private[Engine] (engine: Engine, handler: Pulses => Unit) {
-    @JSExport
+
     def cancel(): Unit = engine.handlers -= handler
   }
 
-  @JsScalaProxy
+
   class Values private[Engine] (engine: Engine, context: TickContext) {
-    @JSExport
+
     def apply[A](beh: Behavior[A]): Option[A] =
       context.getThunk(beh.node).map(_.force)
   }
 
-  @JsScalaProxy
+
   class Pulses private[Engine] (engine: Engine, context: TickContext) {
-    @JSExport
+
     def apply[A](ev: Event[A]): Option[A] =
       context.getPulse(ev.node)
   }
 
-  @JSExport
+
   def compile(events: Seq[Event[_]], behaviors: Seq[Behavior[_]]): Engine =
     new Engine(events.map(_.node) ++ behaviors.map(_.node))
 

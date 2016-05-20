@@ -1,35 +1,31 @@
 package hokko.core
 
-import scala.scalajs.js.annotation.JSExport
-import scalajs2jsscala.annotation.JsScalaProxy
-
-@JsScalaProxy
 trait Event[+A] {
   private[core] val node: Push[A]
 
-  @JSExport
+
   def fold[B, AA >: A](initial: B)(f: (B, AA) => B): IncrementalBehavior[B, AA] =
     IncrementalBehavior.folded(this, initial, f)
 
-  @JSExport
+
   def unionWith[B, C, AA >: A](b: Event[B])(f1: AA => C)(f2: B => C)(f3: (AA, B) => C): Event[C] =
     Event.fromNode(Event.UnionWith(this, b, f1, f2, f3))
 
-  @JSExport
+
   def collect[B, AA >: A](fb: A => Option[B]): Event[B] =
     Event.fromNode(Event.Collect(this, fb))
 
   // Derived ops
 
-  @JSExport
+
   def hold[AA >: A](initial: AA): DiscreteBehavior[AA] =
     fold(initial) { (_, n) => n }
 
-  @JSExport
+
   def unionLeft[AA >: A](other: Event[AA]): Event[AA] =
     unionWith(other)(x => x: AA)(identity) { (left, _) => left }
 
-  @JSExport
+
   def unionRight[AA >: A](other: Event[AA]): Event[AA] =
     unionWith(other)(x => x: AA)(identity) { (_, right) => right }
 
@@ -40,30 +36,30 @@ trait Event[+A] {
     }
   }
 
-  @JSExport
+
   def map[B](f: A => B): Event[B] =
     collect { a => Some(f(a)) }
 
-  @JSExport
+
   def dropIf[B](f: A => Boolean): Event[A] =
     collect { a => if (f(a)) None else Some(a) }
 }
 
 sealed trait EventSource[+A] extends Event[A]
 
-@JsScalaProxy
-@JSExport
+
+
 object Event {
   private[core] def fromNode[A](n: Push[A]): Event[A] =
     new Event[A] { val node = n }
 
-  @JSExport
+
   def empty[A]: Event[A] = fromNode(new NeverPush[A]())
 
-  @JSExport
+
   def source[A]: EventSource[A] = new EventSource[A] { val node = empty[A].node }
 
-  @JSExport
+
   def merge[A](events: Seq[Event[A]]): Event[Seq[A]] = events match {
     case Seq() => empty
     case Seq(x) => x.map(Seq(_))

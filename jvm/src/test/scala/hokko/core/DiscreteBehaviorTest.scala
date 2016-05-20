@@ -23,7 +23,7 @@ class DiscreteBehaviorTest extends FRPTestSuite {
       it("should retrieve it's current value from the poll at the signaled time") {
         val occurrences = mkOccurrences(db.changes) { implicit engine =>
           x = 5
-          engine.fire(List(src -> ()))
+          engine.fire(List((src, ())))
           val currentValues = engine.askCurrentValues()
           assert(currentValues(b).get === 5)
         }
