@@ -1,36 +1,24 @@
 package hokko.core
 
+import cats.Applicative
 
 trait DiscreteBehavior[+A] extends Behavior[A] {
-
   def changes(): Event[A]
-
 
   def discreteReverseApply[B, AA >: A](fb: DiscreteBehavior[A => B]): DiscreteBehavior[B] =
     DiscreteBehavior.fromNode(DiscreteBehavior.ReverseApply(this, fb))
 
-
   def withDeltas[DeltaA, AA >: A](init: AA, deltas: Event[DeltaA]): IncrementalBehavior[AA, DeltaA] =
     IncrementalBehavior.fromDiscreteAndDeltas(init, this, deltas)
-
-  // derived ops
-
-
-  override def map[B](f: A => B): DiscreteBehavior[B] =
-    discreteReverseApply(DiscreteBehavior.constant(f))
-
-
-  def discreteMap2[B, C](b: DiscreteBehavior[B])(f: (A, B) => C): DiscreteBehavior[C] =
-    b.discreteReverseApply(discreteReverseApply(DiscreteBehavior.constant(f.curried)))
-
-
-  def discreteMap3[B, C, D](b: DiscreteBehavior[B], c: DiscreteBehavior[C])(f: (A, B, C) => D): DiscreteBehavior[D] =
-    c.discreteReverseApply(b.discreteReverseApply(discreteReverseApply(DiscreteBehavior.constant(f.curried))))
 }
 
-
-
 object DiscreteBehavior {
+  implicit val applicativeInstance: Applicative[DiscreteBehavior] =
+    new Applicative[DiscreteBehavior] {
+      def pure[A](x: A): DiscreteBehavior[A] = constant(x)
+      def ap[A, B](ff: DiscreteBehavior[A => B])(fa: DiscreteBehavior[A]): DiscreteBehavior[B] =
+        fa.discreteReverseApply(ff)
+    }
 
   def constant[A](init: A): DiscreteBehavior[A] = fromNode(ConstantNode(init))
 

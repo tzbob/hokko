@@ -1,5 +1,7 @@
 package hokko.core
 
+import cats.Applicative
+
 trait Behavior[+A] {
   private[core] val node: Pull[A]
 
@@ -14,14 +16,6 @@ trait Behavior[+A] {
 
   // Derived ops
 
-  def map[B](f: A => B): Behavior[B] = reverseApply(Behavior.constant(f))
-
-  def map2[B, C](b: Behavior[B])(f: (A, B) => C): Behavior[C] =
-    b.reverseApply(reverseApply(Behavior.constant(f.curried)))
-
-  def map3[B, C, D](b: Behavior[B], c: Behavior[C])(f: (A, B, C) => D): Behavior[D] =
-    c.reverseApply(b.reverseApply(reverseApply(Behavior.constant(f.curried))))
-
   def sampledBy(ev: Event[_]): Event[A] = snapshotWith(ev.map(_ => identity[A] _))
 
   def markChanges(signals: Event[Unit]): DiscreteBehavior[A] = {
@@ -31,6 +25,13 @@ trait Behavior[+A] {
 }
 
 object Behavior {
+
+  implicit val applicativeInstance: Applicative[Behavior] =
+    new Applicative[Behavior] {
+      def pure[A](x: A): Behavior[A] = constant(x)
+      def ap[A, B](ff: Behavior[A => B])(fa: Behavior[A]): Behavior[B] =
+        fa.reverseApply(ff)
+    }
 
   def constant[A](x: A): Behavior[A] = DiscreteBehavior.constant(x)
 

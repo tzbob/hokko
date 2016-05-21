@@ -3,6 +3,8 @@ package hokko.core
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Prop._
 
+import cats.syntax.all._
+
 class DiscreteBehaviorTest extends FRPTestSuite {
   describe("DiscreteBehaviors") {
     describe("that are constant") {
@@ -32,7 +34,7 @@ class DiscreteBehaviorTest extends FRPTestSuite {
     }
     describe("that are reverse applied ") {
       val src = Event.source[Int]
-      val bParam: IncrementalBehavior[Int, Int] = src.fold(0) { (acc, n) => n }
+      val bParam: DiscreteBehavior[Int] = src.fold(0) { (acc, n) => n }
 
       it("to constant functions should simply apply the functon and have its results on .changes") {
         val const = DiscreteBehavior.constant((_: Int) * 2)
@@ -48,7 +50,7 @@ class DiscreteBehaviorTest extends FRPTestSuite {
       }
 
       it("to changing functions should simply apply the functon and have its results on .changes") {
-        val bPoorMansDouble = bParam.map { i => (int: Int) => int + i }
+        val bPoorMansDouble = bParam.map { (i: Int) => (int: Int) => int + i }
         val bApplied = bParam.discreteReverseApply(bPoorMansDouble)
         check { (ints: List[Int]) =>
           val occs = mkOccurrences(bApplied.changes) { implicit engine =>

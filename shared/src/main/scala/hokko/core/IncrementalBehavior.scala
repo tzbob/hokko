@@ -3,22 +3,16 @@ package hokko.core
 trait IncrementalBehavior[+A, +DeltaA] extends DiscreteBehavior[A] {
   val initial: A
 
-
   def deltas: Event[DeltaA]
-
 
   def map[B, DeltaB](accumulator: (B, DeltaB) => B)(fa: A => B)(fb: DeltaA => DeltaB): IncrementalBehavior[B, DeltaB] = {
     val newDeltas = deltas.map(fb)
     val newInitial = fa(initial)
     newDeltas.fold(newInitial)(accumulator)
   }
-
 }
 
-
-
 object IncrementalBehavior {
-
   def constant[A, DeltaA](init: A): IncrementalBehavior[A, DeltaA] =
     DiscreteBehavior.constant(init).withDeltas(init, Event.empty)
 
