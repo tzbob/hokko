@@ -9,14 +9,12 @@ lazy val root = project.in(file("."))
 
 lazy val hokko = crossProject.in(file("."))
   .settings(
+    scalafmtConfig in ThisBuild := Some(file(".scalafmt")),
     organization := "be.tzbob",
     name := "hokko",
     version := "0.2",
 
     autoCompilerPlugins := true,
-
-    resolvers += Resolver.sonatypeRepo("releases"),
-    resolvers += Resolver.sonatypeRepo("snapshots"),
 
     scalacOptions ++= Seq(
       "-encoding", "UTF-8",
@@ -33,15 +31,13 @@ lazy val hokko = crossProject.in(file("."))
       "-language:higherKinds"
     ),
     libraryDependencies ++= Seq(
-      "org.typelevel" %%% "cats" % "0.5.0"
+      "org.typelevel" %%% "cats" % "0.7.2",
+      "org.scalatest" %%% "scalatest" % "3.0.0-M10" % "test"
     )
   )
   .jvmSettings(
     // Add JVM-specific settings here
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % "2.2.1" % "test",
-      "org.scalacheck" %% "scalacheck" % "1.12.1" % "test",
-      "org.mockito" % "mockito-all" % "1.8.5" % "test"
     )
   )
   .jsSettings(
