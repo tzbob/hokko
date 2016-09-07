@@ -14,8 +14,8 @@ class EngineTest extends FunSpec with Matchers with MockitoSugar {
     node
   }
 
-  lazy val n1 = N(1)
-  lazy val n2 = N(2)
+  lazy val n1         = N(1)
+  lazy val n2         = N(2)
   lazy val simpleTree = N(3, List(n1, n2), 1)
   lazy val simpleDescendants: Node[_] => Set[Node[_]] = { n =>
     if (n == simpleTree) Set(n1, n2)
@@ -58,19 +58,19 @@ class EngineTest extends FunSpec with Matchers with MockitoSugar {
 
       it("should return an ordered list for a tree") {
         val bfsList = Engine.sortedNodes(List(simpleTree), simpleDescendants)
-        val sti = bfsList.indexOf(simpleTree)
+        val sti     = bfsList.indexOf(simpleTree)
         assert(sti > bfsList.indexOf(n1))
         assert(sti > bfsList.indexOf(n2))
       }
 
       it("should handle multiple trees") {
-        val bfsList = Engine.sortedNodes(List(simpleTree, n2a), allDescendants)
-        val srcNodes = List(n1, n2, n1a)
+        val bfsList   = Engine.sortedNodes(List(simpleTree, n2a), allDescendants)
+        val srcNodes  = List(n1, n2, n1a)
         val exitNodes = List(simpleTree, n2a)
 
         for {
           exit <- exitNodes
-          src <- srcNodes
+          src  <- srcNodes
         } assert(bfsList.indexOf(exit) > bfsList.indexOf(src))
       }
     }

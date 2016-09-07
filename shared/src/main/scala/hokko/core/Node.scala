@@ -26,7 +26,8 @@ trait Push[+A] extends Node[A] {
   override def updateContext(context: TickContext): Option[TickContext] = {
     val supersContext = super.updateContext(context)
     val targetContext = supersContext.getOrElse(context)
-    val pulsedContext = pulse(targetContext).map(targetContext.addPulse(this, _))
+    val pulsedContext =
+      pulse(targetContext).map(targetContext.addPulse(this, _))
     pulsedContext.orElse(supersContext)
   }
 }
@@ -37,7 +38,8 @@ trait State[+A] extends Node[A] {
   override def updateContext(context: TickContext): Option[TickContext] = {
     val supersContext = super.updateContext(context)
     val targetContext = supersContext.getOrElse(context)
-    val stateContext = state(targetContext).map(targetContext.addState(this, _))
+    val stateContext =
+      state(targetContext).map(targetContext.addState(this, _))
     stateContext.orElse(supersContext)
   }
 }

@@ -13,7 +13,7 @@ abstract class Thunk[+A] { self =>
 object Thunk {
   def apply[A](a: => A): Thunk[A] = new Thunk[A] {
     lazy val memo = a
-    def force: A = memo
+    def force: A  = memo
   }
 
   def eager[A](a: A): Thunk[A] = new Thunk[A] {

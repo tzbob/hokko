@@ -1,101 +1,86 @@
 package hokko.core
 
+import cats.syntax.FunctorSyntax
+import hokko.syntax.EventSyntax
+
 trait Event[+A] {
   private[core] val node: Push[A]
-
-
-  def fold[B, AA >: A](initial: B)(f: (B, AA) => B): IncrementalBehavior[B, AA] =
-    IncrementalBehavior.folded(this, initial, f)
-
-
-  def unionWith[B, C, AA >: A](b: Event[B])(f1: AA => C)(f2: B => C)(f3: (AA, B) => C): Event[C] =
-    Event.fromNode(Event.UnionWith(this, b, f1, f2, f3))
-
-
-  def collect[B, AA >: A](fb: A => Option[B]): Event[B] =
-    Event.fromNode(Event.Collect(this, fb))
-
-  // Derived ops
-
-
-  def hold[AA >: A](initial: AA): DiscreteBehavior[AA] =
-    fold(initial) { (_, n) => n }
-
-
-  def unionLeft[AA >: A](other: Event[AA]): Event[AA] =
-    unionWith(other)(x => x: AA)(identity) { (left, _) => left }
-
-
-  def unionRight[AA >: A](other: Event[AA]): Event[AA] =
-    unionWith(other)(x => x: AA)(identity) { (_, right) => right }
-
-  def mergeWith[AA >: A](events: Event[AA]*): Event[Seq[AA]] = {
-    val selfSeq: Event[Seq[AA]] = this.map(Seq(_))
-    events.foldLeft(selfSeq) { (acc, event) =>
-      acc.unionWith(event)(identity)(Seq(_))(_ :+ _)
-    }
-  }
-
-
-  def map[B](f: A => B): Event[B] =
-    collect { a => Some(f(a)) }
-
-
-  def dropIf[B](f: A => Boolean): Event[A] =
-    collect { a => if (f(a)) None else Some(a) }
 }
 
-sealed trait EventSource[+A] extends Event[A]
+sealed trait EventSource[+A] {
+  private[core] val node: Push[A]
+  def toEvent: Event[A] = new Event[A] {
+    override private[core] val node: Push[A] = EventSource.this.node
+  }
+}
 
+object Event extends EventSyntax with FunctorSyntax {
 
+  implicit val hokkoEventInstances = new tc.Event[Event, IBehavior] {
+    override def fold[A, DeltaA](ev: Event[DeltaA], initial: A)(
+        f: (A, DeltaA) => A): IBehavior[A, DeltaA] =
+      IBehavior.folded(ev, initial, f)
 
-object Event {
+    override def unionWith[B, C, A](a: Event[A])(b: Event[B])(f1: (A) => C)(
+        f2: (B) => C)(f3: (A, B) => C): Event[C] =
+      Event.fromNode(Event.UnionWith(a, b, f1, f2, f3))
+
+    override def collect[B, A](ev: Event[A])(fb: (A) => Option[B]): Event[B] =
+      Event.fromNode(Event.Collect(ev, fb))
+  }
+
   private[core] def fromNode[A](n: Push[A]): Event[A] =
     new Event[A] { val node = n }
 
-
   def empty[A]: Event[A] = fromNode(new NeverPush[A]())
 
-
-  def source[A]: EventSource[A] = new EventSource[A] { val node = empty[A].node }
-
+  def source[A]: EventSource[A] = new EventSource[A] {
+    val node = empty[A].node
+  }
 
   def merge[A](events: Seq[Event[A]]): Event[Seq[A]] = events match {
-    case Seq() => empty
-    case Seq(x) => x.map(Seq(_))
-    case Seq(x, xs @ _*) => x.mergeWith(xs: _*)
+    case Seq()            => empty
+    case Seq(x)           => x.map(Seq(_))
+    case Seq(x, xs @ _ *) => x.mergeWith(xs: _*)
   }
 
   // primitive node implementations
 
-  private[core] def snapshotted[A, B](ev: Event[A => B], snappee: Behavior[A]): Event[B] =
-    fromNode(SnapshotWith(ev, snappee))
+  private[core] def snapshotted[A, B](ev: Event[A => B],
+                                      snappee: CBehavior[A]): Event[B] =
+    fromNode(SnapshotWith(ev, snappee.node))
+  private[core] def snapshotted[A, B](ev: Event[A => B],
+                                      snappee: DBehavior[A]): Event[B] =
+    fromNode(SnapshotWith(ev, snappee.node))
+  private[core] def snapshotted[A, B](ev: Event[A => B],
+                                      snappee: IBehavior[A, _]): Event[B] =
+    fromNode(SnapshotWith(ev, snappee.node))
 
   // This can't be a case class, we're relying on reference eq to manually place
   // values of different types with different instances of `NeverPush`
   private class NeverPush[A]() extends Push[A] {
-    val dependencies = List.empty
+    val dependencies                           = List.empty
     def pulse(context: TickContext): Option[A] = None
   }
 
   private case class SnapshotWith[A, B](
-    ev: Event[A => B],
-    b: Behavior[A]
+      ev: Event[A => B],
+      pullNode: Pull[A]
   ) extends Push[B] {
-    val dependencies = List(ev.node, b.node)
+    val dependencies = List(ev.node, pullNode)
     def pulse(context: TickContext): Option[B] =
       for {
-        f <- context.getPulse(ev.node)
-        thunk <- context.getThunk(b.node)
+        f     <- context.getPulse(ev.node)
+        thunk <- context.getThunk(pullNode)
       } yield f(thunk.force)
   }
 
   private case class UnionWith[A, B, C](
-    evA: Event[A],
-    evB: Event[B],
-    f1: A => C,
-    f2: B => C,
-    f3: (A, B) => C
+      evA: Event[A],
+      evB: Event[B],
+      f1: A => C,
+      f2: B => C,
+      f3: (A, B) => C
   ) extends Push[C] {
     val dependencies = List(evA.node, evB.node)
 
@@ -104,17 +89,17 @@ object Event {
       val bPulse = context.getPulse(evB.node)
 
       (aPulse, bPulse) match {
-        case (Some(a), None) => Some(f1(a))
-        case (None, Some(b)) => Some(f2(b))
+        case (Some(a), None)    => Some(f1(a))
+        case (None, Some(b))    => Some(f2(b))
         case (Some(a), Some(b)) => Some(f3(a, b))
-        case _ => None
+        case _                  => None
       }
     }
   }
 
   private case class Collect[A, B](
-    ev: Event[A],
-    f: A => Option[B]
+      ev: Event[A],
+      f: A => Option[B]
   ) extends Push[B] {
     val dependencies = List(ev.node)
     def pulse(context: TickContext): Option[B] =

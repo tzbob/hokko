@@ -3,24 +3,25 @@ package hokko.core
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Prop._
 import org.scalatest.FunSpec
-import scala.language.{ existentials, reflectiveCalls }
+import scala.language.{existentials, reflectiveCalls}
 
 class EventTest extends FRPTestSuite {
   describe("Events") {
     describe("that are folded") {
       val src = Event.source[Int]
-      it("should have a current value equal to " +
-        "the initial value when the source event has no occurrences") {
+      it(
+        "should have a current value equal to " +
+          "the initial value when the source event has no occurrences") {
         check { (i: Int) =>
-          val beh = src.fold(i)(_ + _)
-          val engine = Engine.compile(Seq.empty, Seq(beh))
+          val beh           = src.toEvent.fold(i)(_ + _).toCBehavior
+          val engine        = Engine.compile(Seq.empty, Seq(beh))
           val currentValues = engine.askCurrentValues()
           currentValues(beh).get == i
         }
       }
 
       it("should have a current value representing the total accumulation of occurrences") {
-        val beh = src.fold(0)(_ + _)
+        val beh = src.toEvent.fold(0)(_ + _).toCBehavior
         check { (ints: List[Int]) =>
           val engine = Engine.compile(Seq.empty, Seq(beh))
           fireAll(src, ints)(engine)
@@ -34,7 +35,10 @@ class EventTest extends FRPTestSuite {
       val src1 = Event.source[Int]
       val src2 = Event.source[Double]
 
-      val union = src1.unionWith(src2)(_.toString)(_.toString) { (_, _).toString }
+      val union =
+        src1.toEvent.unionWith(src2.toEvent)(_.toString)(_.toString) {
+          (_, _).toString
+        }
 
       it("should have occurrences matching f1 when left dependency fires") {
         check { (ints: List[Int]) =>
@@ -68,7 +72,7 @@ class EventTest extends FRPTestSuite {
       val src = Event.source[Int]
 
       it("should have no occurrences when collecting nothing") {
-        val collected = src.collect(_ => None)
+        val collected = src.toEvent.collect(_ => None)
 
         check { (ints: List[Int]) =>
           val occurrences = mkOccurrencesWithPulses(collected)(src, ints)
@@ -77,7 +81,7 @@ class EventTest extends FRPTestSuite {
       }
 
       it("should have all occurrences doubled when collecting everything doubled") {
-        val collected = src.collect(i => Some(i * 2))
+        val collected = src.toEvent.collect(i => Some(i * 2))
 
         check { (ints: List[Int]) =>
           val occurrences = mkOccurrencesWithPulses(collected)(src, ints)
@@ -87,7 +91,7 @@ class EventTest extends FRPTestSuite {
 
       it("should only have even occurrences when collecting even values") {
         def even(v: Int): Boolean = v % 2 == 0
-        val collected = src.collect { i =>
+        val collected = src.toEvent.collect { i =>
           if (even(i)) Some(i)
           else None
         }

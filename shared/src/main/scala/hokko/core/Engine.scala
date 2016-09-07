@@ -6,13 +6,12 @@ import scala.language.existentials
 class Engine private (exitNodes: Seq[Node[_]]) {
   import Engine._
 
-  private var handlers = Set.empty[Pulses => Unit]
-  private[this] var memoTable = HMap.empty[TickContext.StateRelation]
+  private var handlers               = Set.empty[Pulses => Unit]
+  private[this] var memoTable        = HMap.empty[TickContext.StateRelation]
   private[this] def currentContext() = TickContext.fromMemoTable(memoTable)
 
   private val nodeToDescendants = Engine.buildDescendants(exitNodes)
-  private val orderedNodes = Engine.sortedNodes(exitNodes, nodeToDescendants)
-
+  private val orderedNodes      = Engine.sortedNodes(exitNodes, nodeToDescendants)
 
   def fire(pulses: Seq[(EventSource[A], A) forSome { type A }]): Unit =
     this.synchronized {
@@ -32,7 +31,8 @@ class Engine private (exitNodes: Seq[Node[_]]) {
     endContext
   }
 
-  private[this] def propagationResults(startContext: TickContext): TickContext =
+  private[this] def propagationResults(
+      startContext: TickContext): TickContext =
     // TODO (if this is a bottleneck): to shortcut propagation as much as possible
     // a node's action can be divided into reactions to noisy and silent updates
     // - propagation contexts need; queuedForSilent: Node[_] => Boolean, queuedForNoisy: Node[_] => Boolean
@@ -41,17 +41,14 @@ class Engine private (exitNodes: Seq[Node[_]]) {
       node.updateContext(context).getOrElse(context)
     }
 
-
-  def askCurrentValues(): Values = new Values(this, propagate(currentContext()))
-
+  def askCurrentValues(): Values =
+    new Values(this, propagate(currentContext()))
 
   def subscribeForPulses(handler: Pulses => Unit): Subscription = {
     handlers += handler
     new Subscription(this, handler)
   }
 }
-
-
 
 object Engine {
 
@@ -60,13 +57,11 @@ object Engine {
     def cancel(): Unit = engine.handlers -= handler
   }
 
-
   class Values private[Engine] (engine: Engine, context: TickContext) {
 
-    def apply[A](beh: Behavior[A]): Option[A] =
+    def apply[A](beh: CBehavior[A]): Option[A] =
       context.getThunk(beh.node).map(_.force)
   }
-
 
   class Pulses private[Engine] (engine: Engine, context: TickContext) {
 
@@ -74,13 +69,15 @@ object Engine {
       context.getPulse(ev.node)
   }
 
-
-  def compile(events: Seq[Event[_]], behaviors: Seq[Behavior[_]]): Engine =
+  def compile(events: Seq[Event[_]], behaviors: Seq[CBehavior[_]]): Engine =
     new Engine(events.map(_.node) ++ behaviors.map(_.node))
 
-  private[core] def buildDescendants(nodes: Seq[Node[_]]): Map[Node[_], Set[Node[_]]] = {
+  private[core] def buildDescendants(
+      nodes: Seq[Node[_]]): Map[Node[_], Set[Node[_]]] = {
     @tailrec
-    def buildDescendants(nodes: List[Node[_]], acc: Map[Node[_], Set[Node[_]]]): Map[Node[_], Set[Node[_]]] =
+    def buildDescendants(
+        nodes: List[Node[_]],
+        acc: Map[Node[_], Set[Node[_]]]): Map[Node[_], Set[Node[_]]] =
       nodes match {
         case Nil => acc
         case node :: ns =>
@@ -93,11 +90,14 @@ object Engine {
     buildDescendants(nodes.toList, Map.empty.withDefaultValue(Set.empty))
   }
 
-  private[core] def sortedNodes(start: Seq[Node[_]], descendants: Node[_] => Set[Node[_]]): List[Node[_]] = {
+  private[core] def sortedNodes(
+      start: Seq[Node[_]],
+      descendants: Node[_] => Set[Node[_]]): List[Node[_]] = {
     @tailrec
-    def allNodes(todo: List[Node[_]], accumulator: Set[Node[_]]): Set[Node[_]] =
+    def allNodes(todo: List[Node[_]],
+                 accumulator: Set[Node[_]]): Set[Node[_]] =
       todo match {
-        case Nil => accumulator
+        case Nil     => accumulator
         case x :: xs => allNodes(xs ++ x.dependencies, accumulator + x)
       }
     val nodes = allNodes(start.toList, Set.empty)
