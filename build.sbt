@@ -8,30 +8,33 @@ lazy val root = project
     publishLocal := {}
   )
 
-lazy val hokko = crossProject
+lazy val commonSettings = Seq(
+  scalafmtConfig in ThisBuild := Some(file(".scalafmt.conf")),
+  organization := "be.tzbob",
+  version := "0.3.1-SNAPSHOT",
+  autoCompilerPlugins := true,
+  scalacOptions ++= Seq(
+    "-encoding",
+    "UTF-8",
+    "-target:jvm-1.6",
+    "-feature",
+    "-deprecation",
+    "-Xlint",
+    "-Yinline-warnings",
+    "-Yno-adapted-args",
+    "-Ywarn-dead-code",
+    "-Ywarn-numeric-widen",
+    "-Ywarn-value-discard",
+    "-Xfuture",
+    "-language:higherKinds",
+    "-language:implicitConversions"
+  ))
+
+lazy val hokkoBase = crossProject
   .in(file("."))
+  .settings(commonSettings: _*)
   .settings(
-    scalafmtConfig in ThisBuild := Some(file(".scalafmt")),
-    organization := "be.tzbob",
     name := "hokko",
-    version := "0.3.0",
-    autoCompilerPlugins := true,
-    scalacOptions ++= Seq(
-      "-encoding",
-      "UTF-8",
-      "-target:jvm-1.6",
-      "-feature",
-      "-deprecation",
-      "-Xlint",
-      "-Yinline-warnings",
-      "-Yno-adapted-args",
-      "-Ywarn-dead-code",
-      "-Ywarn-numeric-widen",
-      "-Ywarn-value-discard",
-      "-Xfuture",
-      "-language:higherKinds",
-      "-language:implicitConversions"
-    ),
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats"      % "0.7.2",
       "org.scalatest" %%% "scalatest" % "3.0.0-M10" % "test"
@@ -49,5 +52,17 @@ lazy val hokko = crossProject
     libraryDependencies ++= Seq()
   )
 
-lazy val hokkoJVM = hokko.jvm
-lazy val hokkoJS = hokko.js
+lazy val hokkoJVM = hokkoBase.jvm
+lazy val hokkoJS  = hokkoBase.js
+
+lazy val hokkoCollectionBase = crossProject
+  .crossType(CrossType.Pure)
+  .in(file("collection"))
+  .settings(commonSettings: _*)
+  .settings(
+    name := "hokko-collection"
+  )
+  .dependsOn(hokkoBase)
+
+lazy val hokkoCollectionJVM = hokkoCollectionBase.jvm
+lazy val hokkoCollectionJS = hokkoCollectionBase.js
