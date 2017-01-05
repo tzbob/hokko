@@ -1,19 +1,17 @@
 package hokko.core
 
 import cats.Applicative
-import cats.syntax.{ApplicativeSyntax, ApplySyntax}
+import cats.syntax.{ApplicativeSyntax, ApplySyntax, FunctorSyntax}
 import hokko.syntax.SnapshottableSyntax
 
-trait CBehavior[+A] {
-  private[core] val node: Pull[A]
-
-  def withChanges[AA >: A](changes: Event[AA]): DBehavior[AA] =
-    DBehavior.fromBehaviorAndChanges(this, changes)
+trait CBehavior[+A] extends Primitive[A] {
+  override private[core] val node: Pull[A]
 }
 
 object CBehavior
     extends ApplicativeSyntax
     with ApplySyntax
+    with FunctorSyntax
     with SnapshottableSyntax {
 
   implicit val hokkoCBehaviorInstances: tc.Snapshottable[CBehavior, Event] with Applicative[

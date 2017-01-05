@@ -7,8 +7,7 @@ trait Event[Ev[_], IBeh[_, _]] extends Functor[Ev] {
   def fold[A, DeltaA](ev: Ev[DeltaA], initial: A)(
       f: (A, DeltaA) => A): IBeh[A, DeltaA]
 
-  def unionWith[B, C, A](a: Ev[A])(b: Ev[B])(f1: A => C)(f2: B => C)(
-      f3: (A, B) => C): Ev[C]
+  def unionWith[A](a: Ev[A])(b: Ev[A])(f: (A, A) => A): Ev[A]
 
   def collect[B, A](ev: Ev[A])(fb: A => Option[B]): Ev[B]
 
@@ -20,7 +19,7 @@ trait Event[Ev[_], IBeh[_, _]] extends Functor[Ev] {
     }
 
   def unionLeft[A](first: Ev[A], other: Ev[A]): Ev[A] =
-    unionWith(first)(other)(identity)(identity) { (left, _) =>
+    unionWith(first)(other) { (left, _) =>
       left
     }
 
@@ -30,7 +29,9 @@ trait Event[Ev[_], IBeh[_, _]] extends Functor[Ev] {
   def mergeWith[A](ev: Ev[A], events: Ev[A]*): Ev[Seq[A]] = {
     val selfSeq: Ev[Seq[A]] = this.map(ev)(Seq(_))
     events.foldLeft(selfSeq) { (acc, event) =>
-      unionWith(acc)(event)(identity)(Seq(_))(_ :+ _)
+      unionWith(acc)(map(event) { evValue =>
+        Seq(evValue)
+      })(_ ++ _)
     }
   }
 

@@ -1,27 +1,35 @@
 package hokko.core
 
 import cats.Applicative
-import cats.syntax.{ApplicativeSyntax, ApplySyntax}
+import cats.syntax.{ApplicativeSyntax, ApplySyntax, FunctorSyntax}
 import hokko.syntax.SnapshottableSyntax
 
-trait DBehavior[+A] {
-  private[core] val node: Pull[A]
+trait DBehavior[A] extends Primitive[A] {
+  override private[core] val node: Pull[A]
+  private[core] val init: A
 
   def changes(): Event[A]
 
-  def withDeltas[DeltaA, AA >: A](
-      init: AA,
-      deltas: Event[DeltaA]): IBehavior[AA, DeltaA] =
-    IBehavior.fromDiscreteAndDeltas(init, this, deltas)
-
-  def toCBehavior: CBehavior[A] = new CBehavior[A] {
+  def toCBehavior[AA >: A]: CBehavior[A] = new CBehavior[A] {
     override private[core] val node: Pull[A] = DBehavior.this.node
+  }
+
+  def toIBehavior[DeltaA](diff: (A, A) => DeltaA)(
+      patch: (A, DeltaA) => A): IBehavior[A, DeltaA] = {
+    val memorizedDeltas = changes.fold(Option.empty[DeltaA] -> init) {
+      case ((_, oldValue), newValue) =>
+        Some(diff(newValue, oldValue)) -> newValue
+    }
+
+    val diffs = memorizedDeltas.changes.collect(_._1)
+    diffs.fold(init)(patch)
   }
 }
 
 object DBehavior
     extends ApplicativeSyntax
     with ApplySyntax
+    with FunctorSyntax
     with SnapshottableSyntax {
   implicit val hokkoDBehaviorInstances: tc.Snapshottable[DBehavior, Event] with Applicative[
     DBehavior] =
@@ -35,10 +43,10 @@ object DBehavior
     }
 
   def constant[A](init: A): DBehavior[A] =
-    fromNode(ConstantNode(init))
+    fromNode(init, ConstantNode(init))
 
   def ap[A, B](ff: DBehavior[A => B])(fa: DBehavior[A]): DBehavior[B] =
-    fromNode(ReverseApply(fa, ff))
+    fromNode(ff.init(fa.init), ReverseApply(fa, ff))
 
   // Convenience traits stacked in the right order
   private[core] trait PushState[A] extends Push[A] with State[A] {
@@ -47,14 +55,9 @@ object DBehavior
   }
   private[core] trait PullStatePush[A] extends PushState[A] with Pull[A]
 
-  private[core] def fromBehaviorAndChanges[A](b: CBehavior[A], ev: Event[A]) =
+  private def fromNode[A](initial: A, n: Push[A] with Pull[A]) =
     new DBehavior[A] {
-      val node              = b.node
-      val changes: Event[A] = ev
-    }
-
-  private def fromNode[A](n: Push[A] with Pull[A]) =
-    new DBehavior[A] {
+      val init              = initial
       val node              = n
       val changes: Event[A] = Event.fromNode(n)
     }

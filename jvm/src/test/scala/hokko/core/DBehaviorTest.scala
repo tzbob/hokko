@@ -19,9 +19,11 @@ class DBehaviorTest extends FRPTestSuite {
     }
     describe("that are reverse applied ") {
       val src = Event.source[Int]
-      val bParam: DBehavior[Int] = src.toEvent.fold(0) { (acc, n) =>
-        n
-      }
+      val bParam: DBehavior[Int] = src.toEvent
+        .fold(0) { (acc, n) =>
+          n
+        }
+        .toDBehavior
 
       it("to constant functions should simply apply the functon and have its results on .changes") {
         val const    = DBehavior.constant((_: Int) * 2)
@@ -52,6 +54,17 @@ class DBehaviorTest extends FRPTestSuite {
               .getOrElse(0)
           }
           occs == ints.map(_ * 2)
+        }
+      }
+
+      it("should be convertable to ibehaviors") {
+        val ib = bParam.toIBehavior(_ - _)(_ + _)
+        check { (ints: List[Int]) =>
+          val occurrences = mkOccurrencesWithPulses(ib.deltas)(src, ints)
+          val expected = (0 +: ints, (0 +: ints).tail).zipped.map { (o, n) =>
+            n - o
+          }
+          occurrences == expected
         }
       }
     }

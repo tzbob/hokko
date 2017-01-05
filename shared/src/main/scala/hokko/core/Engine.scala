@@ -53,24 +53,24 @@ class Engine private (exitNodes: Seq[Node[_]]) {
 object Engine {
 
   class Subscription private[Engine] (engine: Engine, handler: Pulses => Unit) {
-
     def cancel(): Unit = engine.handlers -= handler
   }
 
   class Values private[Engine] (engine: Engine, context: TickContext) {
-
     def apply[A](beh: CBehavior[A]): Option[A] =
       context.getThunk(beh.node).map(_.force)
   }
 
   class Pulses private[Engine] (engine: Engine, context: TickContext) {
-
     def apply[A](ev: Event[A]): Option[A] =
       context.getPulse(ev.node)
   }
 
-  def compile(events: Seq[Event[_]], behaviors: Seq[CBehavior[_]]): Engine =
-    new Engine(events.map(_.node) ++ behaviors.map(_.node))
+  def compile(primitives: List[Primitive[_]]): Engine =
+    new Engine(primitives.map(_.node))
+
+  def compile(primitives: Primitive[_]*): Engine =
+    new Engine(primitives.map(_.node))
 
   private[core] def buildDescendants(
       nodes: Seq[Node[_]]): Map[Node[_], Set[Node[_]]] = {

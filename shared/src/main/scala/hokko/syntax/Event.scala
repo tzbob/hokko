@@ -14,9 +14,8 @@ final class EventOps[Ev[_], IBeh[_, _], A](e: Ev[A])(
   def fold[AccA](initial: AccA)(f: (AccA, A) => AccA): IBeh[AccA, A] =
     ev.fold(e, initial)(f)
 
-  def unionWith[B, C](b: Ev[B])(f1: A => C)(f2: B => C)(f3: (A,
-                                                             B) => C): Ev[C] =
-    ev.unionWith(e)(b)(f1)(f2)(f3)
+  def unionWith(b: Ev[A])(f: (A, A) => A): Ev[A] =
+    ev.unionWith(e)(b)(f)
 
   def collect[B](fb: A => Option[B]): Ev[B] =
     ev.collect(e)(fb)

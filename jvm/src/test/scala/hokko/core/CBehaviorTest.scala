@@ -10,7 +10,7 @@ class CBehaviorTest extends FRPTestSuite {
     describe("that are constant") {
       val const = CBehavior.constant(5)
       it("should always return the same value and its changes should never have occurrences") {
-        val engine        = Engine.compile(Seq.empty, Seq(const))
+        val engine        = Engine.compile(const)
         val currentValues = engine.askCurrentValues()
         assert(currentValues(const).get === 5)
       }
@@ -20,7 +20,7 @@ class CBehaviorTest extends FRPTestSuite {
       it("should represent the current state of the function") {
         var i      = 0
         val beh    = CBehavior.fromPoll(() => i)
-        val engine = Engine.compile(Seq.empty, Seq(beh))
+        val engine = Engine.compile(beh)
         check { (int: Int) =>
           i = int
           val values = engine.askCurrentValues()
@@ -38,7 +38,7 @@ class CBehaviorTest extends FRPTestSuite {
 
       it("to changing functions should simply apply the function") {
         val bApplied = bFun ap bParam
-        val engine   = Engine.compile(Seq.empty, Seq(bApplied))
+        val engine   = Engine.compile(bApplied)
         check { (int: Int) =>
           param = int
           f = (i: Int) => i + int

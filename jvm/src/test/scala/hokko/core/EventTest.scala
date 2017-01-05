@@ -13,17 +13,17 @@ class EventTest extends FRPTestSuite {
         "should have a current value equal to " +
           "the initial value when the source event has no occurrences") {
         check { (i: Int) =>
-          val beh           = src.toEvent.fold(i)(_ + _).toCBehavior
-          val engine        = Engine.compile(Seq.empty, Seq(beh))
+          val beh           = src.toEvent.fold(i)(_ + _).toDBehavior.toCBehavior
+          val engine        = Engine.compile(beh)
           val currentValues = engine.askCurrentValues()
           currentValues(beh).get == i
         }
       }
 
       it("should have a current value representing the total accumulation of occurrences") {
-        val beh = src.toEvent.fold(0)(_ + _).toCBehavior
+        val beh = src.toEvent.fold(0)(_ + _).toDBehavior.toCBehavior
         check { (ints: List[Int]) =>
-          val engine = Engine.compile(Seq.empty, Seq(beh))
+          val engine = Engine.compile(beh)
           fireAll(src, ints)(engine)
           val currentValues = engine.askCurrentValues()
           currentValues(beh).get == ints.sum
@@ -36,7 +36,7 @@ class EventTest extends FRPTestSuite {
       val src2 = Event.source[Double]
 
       val union =
-        src1.toEvent.unionWith(src2.toEvent)(_.toString)(_.toString) {
+        src1.toEvent.map(_.toString).unionWith(src2.toEvent.map(_.toString)) {
           (_, _).toString
         }
 

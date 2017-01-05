@@ -3,8 +3,8 @@ package hokko.core
 import cats.syntax.FunctorSyntax
 import hokko.syntax.EventSyntax
 
-trait Event[+A] {
-  private[core] val node: Push[A]
+trait Event[+A] extends Primitive[A] {
+  override private[core] val node: Push[A]
 }
 
 sealed trait EventSource[+A] {
@@ -21,9 +21,9 @@ object Event extends EventSyntax with FunctorSyntax {
         f: (A, DeltaA) => A): IBehavior[A, DeltaA] =
       IBehavior.folded(ev, initial, f)
 
-    override def unionWith[B, C, A](a: Event[A])(b: Event[B])(f1: (A) => C)(
-        f2: (B) => C)(f3: (A, B) => C): Event[C] =
-      Event.fromNode(Event.UnionWith(a, b, f1, f2, f3))
+    override def unionWith[A](a: Event[A])(b: Event[A])(
+        f: (A, A) => A): Event[A] =
+      Event.fromNode(Event.UnionWith(a, b, f))
 
     override def collect[B, A](ev: Event[A])(fb: (A) => Option[B]): Event[B] =
       Event.fromNode(Event.Collect(ev, fb))
@@ -75,23 +75,21 @@ object Event extends EventSyntax with FunctorSyntax {
       } yield f(thunk.force)
   }
 
-  private case class UnionWith[A, B, C](
+  private case class UnionWith[A](
       evA: Event[A],
-      evB: Event[B],
-      f1: A => C,
-      f2: B => C,
-      f3: (A, B) => C
-  ) extends Push[C] {
+      evB: Event[A],
+      f: (A, A) => A
+  ) extends Push[A] {
     val dependencies = List(evA.node, evB.node)
 
-    def pulse(context: TickContext): Option[C] = {
+    def pulse(context: TickContext): Option[A] = {
       val aPulse = context.getPulse(evA.node)
       val bPulse = context.getPulse(evB.node)
 
       (aPulse, bPulse) match {
-        case (Some(a), None)    => Some(f1(a))
-        case (None, Some(b))    => Some(f2(b))
-        case (Some(a), Some(b)) => Some(f3(a, b))
+        case (Some(a), None)    => Some(a)
+        case (None, Some(b))    => Some(b)
+        case (Some(a), Some(b)) => Some(f(a, b))
         case _                  => None
       }
     }
