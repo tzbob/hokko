@@ -50,7 +50,7 @@ object CBehavior
       }
     }
 
-  private[core] def fromPoll[A](f: () => A): CBehavior[A] = new CBehavior[A] {
+  def fromPoll[A](f: () => A): CBehavior[A] = new CBehavior[A] {
     val node = new Pull[A] {
       val dependencies                = List.empty[Node[_]]
       def thunk(context: TickContext) = Thunk(f())

@@ -1,8 +1,11 @@
 scalaVersion in ThisBuild := "2.11.8"
 
+resolvers += "Sonatype OSS Snapshots" at
+  "https://oss.sonatype.org/content/repositories/releases"
+
 lazy val root = project
   .in(file("."))
-  .aggregate(hokkoJS, hokkoJVM)
+  .aggregate(hokkoJS, hokkoJVM, hokkoCollectionJS, hokkoCollectionJVM)
   .settings(
     publish := {},
     publishLocal := {}
@@ -30,20 +33,20 @@ lazy val commonSettings = Seq(
     "-language:implicitConversions"
   ))
 
-lazy val hokkoBase = crossProject
+lazy val hokko = crossProject
   .in(file("."))
   .settings(commonSettings: _*)
   .settings(
     name := "hokko",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats"      % "0.7.2",
-      "org.scalatest" %%% "scalatest" % "3.0.0-M10" % "test"
+      "org.scalatest" %%% "scalatest" % "3.0.1" % "test"
     )
   )
   .jvmSettings(
     // Add JVM-specific settings here
     libraryDependencies ++= Seq(
-      "org.scalacheck" %% "scalacheck" % "1.12.1" % "test",
+      "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
       "org.mockito"    % "mockito-all" % "1.8.5"  % "test"
     )
   )
@@ -52,17 +55,35 @@ lazy val hokkoBase = crossProject
     libraryDependencies ++= Seq()
   )
 
-lazy val hokkoJVM = hokkoBase.jvm
-lazy val hokkoJS  = hokkoBase.js
+lazy val hokkoJVM = hokko.jvm
+lazy val hokkoJS  = hokko.js
 
-lazy val hokkoCollectionBase = crossProject
-  .crossType(CrossType.Pure)
+lazy val hokkoCollection = crossProject
   .in(file("collection"))
   .settings(commonSettings: _*)
   .settings(
-    name := "hokko-collection"
+    name := "hokko-collection",
+    libraryDependencies ++= Seq(
+      "com.chuusai" %%% "shapeless" % "2.3.2"
+    )
   )
-  .dependsOn(hokkoBase)
+  .dependsOn(hokko % "compile;test->test")
 
-lazy val hokkoCollectionJVM = hokkoCollectionBase.jvm
-lazy val hokkoCollectionJS = hokkoCollectionBase.js
+lazy val hokkoCollectionJVM = hokkoCollection.jvm
+lazy val hokkoCollectionJS  = hokkoCollection.js
+
+lazy val hokkoBench = crossProject
+  .in(file("benchmark"))
+  .settings(commonSettings: _*)
+  .settings(
+    name := "benchmark",
+    libraryDependencies ++= Seq(
+      "com.storm-enroute" %% "scalameter" % "0.7"
+    ),
+    testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
+    parallelExecution in Test := false
+  )
+  .dependsOn(hokko, hokkoCollection)
+
+lazy val hokkoBenchJVM = hokkoBench.jvm
+lazy val hokkoBenchJS = hokkoBench.js

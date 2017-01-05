@@ -2,7 +2,7 @@ package hokko.core
 
 import org.scalatest.FunSpec
 import org.scalatest.Matchers
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito._
 
 class EngineTest extends FunSpec with Matchers with MockitoSugar {
