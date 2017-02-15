@@ -1,4 +1,5 @@
 scalaVersion in ThisBuild := "2.11.8"
+version in ThisBuild := "0.4.0-SNAPSHOT"
 
 resolvers += "Sonatype OSS Snapshots" at
   "https://oss.sonatype.org/content/repositories/releases"
@@ -14,7 +15,6 @@ lazy val root = project
 lazy val commonSettings = Seq(
   scalafmtConfig in ThisBuild := Some(file(".scalafmt.conf")),
   organization := "be.tzbob",
-  version := "0.3.1-SNAPSHOT",
   autoCompilerPlugins := true,
   scalacOptions ++= Seq(
     "-encoding",
