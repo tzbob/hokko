@@ -7,7 +7,7 @@ class Engine private (exitNodes: Seq[Node[_]]) {
   import Engine._
 
   private var handlers               = Set.empty[Pulses => Unit]
-  private[this] var memoTable        = HMap.empty[TickContext.StateRelation]
+  private[this] var memoTable        = HMap.empty[State, cats.Id]
   private[this] def currentContext() = TickContext.fromMemoTable(memoTable)
 
   private val nodeToDescendants = Engine.buildDescendants(exitNodes)
@@ -33,10 +33,6 @@ class Engine private (exitNodes: Seq[Node[_]]) {
 
   private[this] def propagationResults(
       startContext: TickContext): TickContext =
-    // TODO (if this is a bottleneck): to shortcut propagation as much as possible
-    // a node's action can be divided into reactions to noisy and silent updates
-    // - propagation contexts need; queuedForSilent: Node[_] => Boolean, queuedForNoisy: Node[_] => Boolean
-    // - nodes need; reactToSilent(TickContext): Update[TickContext] and reactToNoisy ...
     orderedNodes.foldLeft(startContext) { (context, node) =>
       node.updateContext(context).getOrElse(context)
     }
@@ -51,7 +47,6 @@ class Engine private (exitNodes: Seq[Node[_]]) {
 }
 
 object Engine {
-
   class Subscription private[Engine] (engine: Engine, handler: Pulses => Unit) {
     def cancel(): Unit = engine.handlers -= handler
   }

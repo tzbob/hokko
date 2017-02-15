@@ -2,14 +2,14 @@ package hokko.core
 
 import scala.language.higherKinds
 
-class HMap[Relation[_, _]](underlying: Map[Any, Any] = Map.empty) {
-  def get[K, V](k: K)(implicit ev: Relation[K, V]): Option[V] =
-    underlying.get(k).asInstanceOf[Option[V]]
-  def +[K, V](kv: (K, V))(implicit ev: Relation[K, V]): HMap[Relation] =
+class HMap[Key[_], Result[_]](underlying: Map[Any, Any] = Map.empty) {
+  def get[A](k: Key[A]): Option[Result[A]] =
+    underlying.get(k).asInstanceOf[Option[Result[A]]]
+  def +[A](kv: (Key[A], Result[A])): HMap[Key, Result] =
     new HMap(underlying + kv)
-  def -[K, V](k: K): HMap[Relation] = new HMap(underlying - k)
+  def -[A](key: Key[A]): HMap[Key, Result] = new HMap(underlying - key)
 }
 
 object HMap {
-  def empty[Relation[_, _]]: HMap[Relation] = new HMap(Map.empty)
+  def empty[Key[_], Result[_]]: HMap[Key, Result] = new HMap(Map.empty)
 }
