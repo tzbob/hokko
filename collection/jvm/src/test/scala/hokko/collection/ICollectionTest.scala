@@ -2,7 +2,6 @@ package hokko.collection
 
 import hokko.collection.ICollection.ICollection
 import hokko.collection.ICollection.implicits._
-import org.scalacheck.Prop.BooleanOperators
 
 class ICollectionTest extends SeqIBehaviorTests {
   describe("ICollections") {

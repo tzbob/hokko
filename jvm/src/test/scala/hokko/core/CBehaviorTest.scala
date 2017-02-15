@@ -3,8 +3,6 @@ package hokko.core
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Prop._
 
-import hokko.syntax.snapshottable$._
-
 class CBehaviorTest extends FRPTestSuite {
   describe("Behaviors") {
     describe("that are constant") {
@@ -52,7 +50,10 @@ class CBehaviorTest extends FRPTestSuite {
       var param   = 0
       val bParam  = CBehavior.fromPoll(() => param)
       val src     = Event.source[Int]
-      val snapped = bParam.snapshotWith(src.toEvent)(_ + _)
+      val snapped = bParam.snapshotWith(src)(_ + _)
+
+      val test = CBehavior.source(0)
+      test.map2(bParam)(_ + _)
 
       it("produce events that apply the function to the behavior's current value") {
         check { (ints: List[Int]) =>

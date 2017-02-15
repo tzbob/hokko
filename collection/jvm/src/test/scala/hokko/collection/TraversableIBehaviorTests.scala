@@ -59,7 +59,7 @@ trait TraversableIBehaviorTests extends FRPTestSuite {
 
     ICollectionTransformation[A, List[A]](ic => {
       val init = ICollectionTransformation.init(ic)
-      (ic ++ src.toEvent, init.map(pulses.scanLeft(_)(_ ++ _)))
+      (ic ++ src, init.map(pulses.scanLeft(_)(_ ++ _)))
     }, List(src -> pulses))
   }
 }

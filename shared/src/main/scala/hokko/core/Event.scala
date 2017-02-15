@@ -1,16 +1,20 @@
 package hokko.core
 
+import cats.Functor
 import cats.syntax.FunctorSyntax
 import hokko.syntax.EventSyntax
 
-trait Event[+A] extends Primitive[A] {
+sealed trait Event[+A] extends Primitive[A] {
   override private[core] val node: Push[A]
 }
 
-sealed trait EventSource[+A] {
-  private[core] val node: Push[A]
-  def toEvent: Event[A] = new Event[A] {
-    override private[core] val node: Push[A] = EventSource.this.node
+final class EventSource[+A](private[core] val node: Push[A]) extends Event[A]
+
+object EventSource {
+  implicit def toFunctorOpsEvtSrc[A](target: EventSource[A])(
+      implicit tc: Functor[Event]): Functor.Ops[Event, A] = {
+    val evt: Event[A] = target
+    Event.toFunctorOps(evt)(tc)
   }
 }
 
@@ -33,9 +37,7 @@ object Event extends EventSyntax[Event, IBehavior] with FunctorSyntax {
 
   def empty[A]: Event[A] = fromNode(new NeverPush[A]())
 
-  def source[A]: EventSource[A] = new EventSource[A] {
-    val node = empty[A].node
-  }
+  def source[A]: EventSource[A] = new EventSource[A](empty[A].node)
 
   def merge[A](events: Seq[Event[A]]): Event[Seq[A]] = events match {
     case Seq()            => empty

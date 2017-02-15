@@ -19,7 +19,7 @@ class DBehaviorTest extends FRPTestSuite {
     }
     describe("that are reverse applied ") {
       val src = Event.source[Int]
-      val bParam: DBehavior[Int] = src.toEvent
+      val bParam: DBehavior[Int] = src
         .fold(0) { (acc, n) =>
           n
         }

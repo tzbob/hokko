@@ -15,7 +15,7 @@ class IBehaviorTest extends FRPTestSuite {
 
     describe("that are incrementally mapped") {
       val src                         = Event.source[Int]
-      val bParam: IBehavior[Int, Int] = src.toEvent.fold(0)(_ + _)
+      val bParam: IBehavior[Int, Int] = src.fold(0)(_ + _)
 
       it("to constant functions should simply apply the functon and have its results on .changes") {
         val incrementalTimesTwo = bParam.incMap(_ * 2)(_ * 2)(_ + _)

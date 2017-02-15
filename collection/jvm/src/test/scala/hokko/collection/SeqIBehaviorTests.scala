@@ -30,7 +30,7 @@ trait SeqIBehaviorTests extends TraversableIBehaviorTests {
     ICollectionTransformation[A, List[A]](
       ic => {
         val init = ICollectionTransformation.init(ic)
-        (ic :+ src.toEvent, init.map(pulses.scanLeft(_)(_ :+ _)))
+        (ic :+ src, init.map(pulses.scanLeft(_)(_ :+ _)))
       },
       List(src -> pulses)
     )
@@ -42,7 +42,7 @@ trait SeqIBehaviorTests extends TraversableIBehaviorTests {
     ICollectionTransformation[A, List[A]](
       ic => {
         val init = ICollectionTransformation.init(ic)
-        (src.toEvent +: ic, init.map(pulses.scanLeft(_)((acc, n) => n +: acc)))
+        (src +: ic, init.map(pulses.scanLeft(_)((acc, n) => n +: acc)))
       },
       List(src -> pulses)
     )
@@ -55,7 +55,7 @@ trait SeqIBehaviorTests extends TraversableIBehaviorTests {
     ICollectionTransformation[A, List[A]](
       ic => {
         val init = ICollectionTransformation.init(ic)
-        (ic.updated(src.toEvent), init.map(pulses.scanLeft(_) {
+        (ic.updated(src), init.map(pulses.scanLeft(_) {
           case (acc, (idx, el)) => acc.updated(idx, el)
         }))
       },

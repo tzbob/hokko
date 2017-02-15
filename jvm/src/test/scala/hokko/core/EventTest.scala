@@ -13,7 +13,9 @@ class EventTest extends FRPTestSuite {
         "should have a current value equal to " +
           "the initial value when the source event has no occurrences") {
         check { (i: Int) =>
-          val beh           = src.toEvent.fold(i)(_ + _).toDBehavior.toCBehavior
+          val beh           = src.fold(i)(_ + _)
+            .toDBehavior
+            .toCBehavior
           val engine        = Engine.compile(beh)
           val currentValues = engine.askCurrentValues()
           currentValues(beh).get == i
@@ -21,7 +23,7 @@ class EventTest extends FRPTestSuite {
       }
 
       it("should have a current value representing the total accumulation of occurrences") {
-        val beh = src.toEvent.fold(0)(_ + _).toDBehavior.toCBehavior
+        val beh = src.fold(0)(_ + _).toDBehavior.toCBehavior
         check { (ints: List[Int]) =>
           val engine = Engine.compile(beh)
           fireAll(src, ints)(engine)
@@ -35,8 +37,10 @@ class EventTest extends FRPTestSuite {
       val src1 = Event.source[Int]
       val src2 = Event.source[Double]
 
+      val test = src1.map(x => x)
+
       val union =
-        src1.toEvent.map(_.toString).unionWith(src2.toEvent.map(_.toString)) {
+        src1.map(_.toString).unionWith(src2.map(_.toString)) {
           (_, _).toString
         }
 
@@ -72,7 +76,7 @@ class EventTest extends FRPTestSuite {
       val src = Event.source[Int]
 
       it("should have no occurrences when collecting nothing") {
-        val collected = src.toEvent.collect(_ => None)
+        val collected = src.collect(_ => None)
 
         check { (ints: List[Int]) =>
           val occurrences = mkOccurrencesWithPulses(collected)(src, ints)
@@ -81,7 +85,7 @@ class EventTest extends FRPTestSuite {
       }
 
       it("should have all occurrences doubled when collecting everything doubled") {
-        val collected = src.toEvent.collect(i => Some(i * 2))
+        val collected = src.collect(i => Some(i * 2))
 
         check { (ints: List[Int]) =>
           val occurrences = mkOccurrencesWithPulses(collected)(src, ints)
@@ -91,7 +95,7 @@ class EventTest extends FRPTestSuite {
 
       it("should only have even occurrences when collecting even values") {
         def even(v: Int): Boolean = v % 2 == 0
-        val collected = src.toEvent.collect { i =>
+        val collected = src.collect { i =>
           if (even(i)) Some(i)
           else None
         }

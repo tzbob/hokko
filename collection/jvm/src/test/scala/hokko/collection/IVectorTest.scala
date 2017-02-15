@@ -9,7 +9,7 @@ class IVectorTest extends FRPTestSuite {
       val testRange = 1 to 5
       val ivC       = IVector.constant(testRange.toVector)
       val src       = Event.source[Int]
-      val deletes   = src.toEvent
+      val deletes   = src
       val ivDeleted = ivC.remove(deletes)
 
       it("should delete values") {
@@ -54,7 +54,7 @@ class IVectorTest extends FRPTestSuite {
       val testRange     = 1 to 20
       val ivC           = IVector.constant(testRange.toVector)
       val src           = Event.source[Int]
-      val evtUpdateHead = src.toEvent.map(x => x -> 10)
+      val evtUpdateHead = src.map(x => x -> 10)
       val ivUpdated10   = ivC.updated(evtUpdateHead)
 
       it("should always return the correct value at position 10") {

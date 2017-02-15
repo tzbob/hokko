@@ -6,7 +6,7 @@ import hokko.syntax.SnapshottableSyntax
 
 trait DBehavior[A] extends Primitive[A] {
   override private[core] val node: Pull[A]
-  private[core] val init: A
+  val init: A
 
   def changes(): Event[A]
 
