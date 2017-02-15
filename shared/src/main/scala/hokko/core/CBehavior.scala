@@ -12,7 +12,7 @@ object CBehavior
     extends ApplicativeSyntax
     with ApplySyntax
     with FunctorSyntax
-    with SnapshottableSyntax {
+    with SnapshottableSyntax[Event, CBehavior] {
 
   implicit val hokkoCBehaviorInstances: tc.Snapshottable[CBehavior, Event] with Applicative[
     CBehavior] =

@@ -14,8 +14,7 @@ sealed trait EventSource[+A] {
   }
 }
 
-object Event extends EventSyntax with FunctorSyntax {
-
+object Event extends EventSyntax[Event, IBehavior] with FunctorSyntax {
   implicit val hokkoEventInstances = new tc.Event[Event, IBehavior] {
     override def fold[A, DeltaA](ev: Event[DeltaA], initial: A)(
         f: (A, DeltaA) => A): IBehavior[A, DeltaA] =

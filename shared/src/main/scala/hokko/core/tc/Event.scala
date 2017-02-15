@@ -3,7 +3,6 @@ package hokko.core.tc
 import cats.Functor
 
 trait Event[Ev[_], IBeh[_, _]] extends Functor[Ev] {
-
   def fold[A, DeltaA](ev: Ev[DeltaA], initial: A)(
       f: (A, DeltaA) => A): IBeh[A, DeltaA]
 

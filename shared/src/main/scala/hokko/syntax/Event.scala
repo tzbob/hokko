@@ -2,8 +2,8 @@ package hokko.syntax
 
 import hokko.core.tc.Event
 
-trait EventSyntax {
-  implicit def syntaxEvent[A, Ev[_], IBeh[_, _]](e: Ev[A])(
+trait EventSyntax[Ev[_], IBeh[_, _]] {
+  implicit def syntaxEvent[A](e: Ev[A])(
       implicit ev: Event[Ev, IBeh]): EventOps[Ev, IBeh, A] =
     new EventOps[Ev, IBeh, A](e)
 }

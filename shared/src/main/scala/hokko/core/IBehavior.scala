@@ -52,7 +52,8 @@ trait IBehavior[+A, +DeltaA] extends Primitive[A] {
   def toCBehavior[AA >: A]: CBehavior[AA] = toDBehavior.toCBehavior
 }
 
-object IBehavior extends SnapshottableSyntax {
+object IBehavior
+    extends SnapshottableSyntax[Event, ({ type l[A] = IBehavior[A, Any] })#l] {
   type IBehaviorA[A] = IBehavior[A, _]
 
   implicit val hokkoDBehaviorInstances: tc.Snapshottable[IBehaviorA, Event] =

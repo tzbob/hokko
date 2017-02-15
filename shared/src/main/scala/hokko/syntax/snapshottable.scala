@@ -2,8 +2,8 @@ package hokko.syntax
 
 import hokko.core.tc.Snapshottable
 
-trait SnapshottableSyntax {
-  implicit def syntaxSnapshottable[A, Beh[_], Ev[_]](b: Beh[A])(
+trait SnapshottableSyntax[Ev[_], Beh[_]] {
+  implicit def syntaxSnapshottable[A](b: Beh[A])(
       implicit ev: Snapshottable[Beh, Ev]): SnapshottableOps[Beh, Ev, A] =
     new SnapshottableOps[Beh, Ev, A](b)
 }

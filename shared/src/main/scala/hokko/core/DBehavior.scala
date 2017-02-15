@@ -30,7 +30,7 @@ object DBehavior
     extends ApplicativeSyntax
     with ApplySyntax
     with FunctorSyntax
-    with SnapshottableSyntax {
+    with SnapshottableSyntax[Event, DBehavior] {
   implicit val hokkoDBehaviorInstances: tc.Snapshottable[DBehavior, Event] with Applicative[
     DBehavior] =
     new tc.Snapshottable[DBehavior, Event] with Applicative[DBehavior] {
