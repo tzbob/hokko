@@ -1,8 +1,7 @@
 scalaVersion in ThisBuild := "2.11.8"
 version in ThisBuild := "0.4.0-SNAPSHOT"
 
-resolvers += "Sonatype OSS Snapshots" at
-  "https://oss.sonatype.org/content/repositories/releases"
+scalafmtConfig in ThisBuild := Some(file(".scalafmt.conf"))
 
 lazy val root = project
   .in(file("."))
@@ -12,32 +11,57 @@ lazy val root = project
     publishLocal := {}
   )
 
-lazy val commonSettings = Seq(
-  scalafmtConfig in ThisBuild := Some(file(".scalafmt.conf")),
-  organization := "be.tzbob",
-  autoCompilerPlugins := true,
-  scalacOptions ++= Seq(
-    "-encoding",
-    "UTF-8",
-    "-target:jvm-1.6",
-    "-feature",
-    "-deprecation",
-    "-Xlint",
-    "-Yinline-warnings",
-    "-Yno-adapted-args",
-    "-Ywarn-dead-code",
-    "-Ywarn-numeric-widen",
-    "-Ywarn-value-discard",
-    "-Xfuture",
-    "-language:higherKinds",
-    "-language:implicitConversions"
-  ))
+lazy val publishSettings = Seq(
+  homepage := Some(url("https://github.com/Tzbob/scalatags-hokko")),
+  licenses := Seq(
+    "MIT" -> url("https://opensource.org/licenses/mit-license.php")),
+  publishMavenStyle := true,
+  publishTo := {
+    val nexus = "https://oss.sonatype.org/"
+    if (isSnapshot.value)
+      Some("snapshots" at nexus + "content/repositories/snapshots")
+    else
+      Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  },
+  pomExtra :=
+    <scm>
+      <url>git@github.com:Tzbob/scalatags-hokko.git</url>
+      <connection>scm:git:git@github.com:Tzbob/scalatags-hokko.git</connection>
+    </scm>
+      <developers>
+        <developer>
+          <id>tzbob</id>
+          <name>Bob Reynders</name>
+          <url>https://github.com/Tzbob</url>
+        </developer>
+      </developers>
+)
+
+lazy val commonSettings = Seq(organization := "be.tzbob",
+                              autoCompilerPlugins := true,
+                              scalacOptions ++= Seq(
+                                "-encoding",
+                                "UTF-8",
+                                "-feature",
+                                "-deprecation",
+                                "-Xlint",
+                                "-Yinline-warnings",
+                                "-Yno-adapted-args",
+                                "-Ywarn-dead-code",
+                                "-Ywarn-numeric-widen",
+                                "-Ywarn-value-discard",
+                                "-Xfuture",
+                                "-language:higherKinds",
+                                "-language:implicitConversions"
+                              ))
 
 lazy val hokko = crossProject
   .in(file("."))
   .settings(commonSettings: _*)
+  .settings(publishSettings: _*)
   .settings(
     name := "hokko",
+    version := "0.4.0-SNAPSHOT",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats"      % "0.7.2",
       "org.scalatest" %%% "scalatest" % "3.0.1" % "test"
@@ -63,6 +87,7 @@ lazy val hokkoCollection = crossProject
   .settings(commonSettings: _*)
   .settings(
     name := "hokko-collection",
+    version := "0.4.0-SNAPSHOT",
     libraryDependencies ++= Seq(
       "com.chuusai" %%% "shapeless" % "2.3.2"
     )
@@ -77,6 +102,7 @@ lazy val hokkoBench = crossProject
   .settings(commonSettings: _*)
   .settings(
     name := "benchmark",
+    version := "0.4.0-SNAPSHOT",
     libraryDependencies ++= Seq(
       "com.storm-enroute" %% "scalameter" % "0.7"
     ),
