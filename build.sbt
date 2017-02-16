@@ -1,7 +1,8 @@
-scalaVersion in ThisBuild := "2.11.8"
-version in ThisBuild := "0.4.0-SNAPSHOT"
+resolvers += "Sonatype OSS Snapshots" at
+  "https://oss.sonatype.org/content/repositories/snapshots"
 
-scalafmtConfig in ThisBuild := Some(file(".scalafmt.conf"))
+scalaVersion in ThisBuild := "2.12.1"
+version in ThisBuild := "0.4.1-SNAPSHOT"
 
 lazy val root = project
   .in(file("."))
@@ -37,23 +38,24 @@ lazy val publishSettings = Seq(
       </developers>
 )
 
-lazy val commonSettings = Seq(organization := "be.tzbob",
-                              autoCompilerPlugins := true,
-                              scalacOptions ++= Seq(
-                                "-encoding",
-                                "UTF-8",
-                                "-feature",
-                                "-deprecation",
-                                "-Xlint",
-                                "-Yinline-warnings",
-                                "-Yno-adapted-args",
-                                "-Ywarn-dead-code",
-                                "-Ywarn-numeric-widen",
-                                "-Ywarn-value-discard",
-                                "-Xfuture",
-                                "-language:higherKinds",
-                                "-language:implicitConversions"
-                              ))
+lazy val commonSettings = Seq(
+  organization := "be.tzbob",
+  autoCompilerPlugins := true,
+  scalacOptions ++= Seq(
+    "-encoding",
+    "UTF-8",
+    "-feature",
+    "-deprecation",
+    "-Xlint",
+    "-Yno-adapted-args",
+    "-Ywarn-dead-code",
+    "-Ywarn-numeric-widen",
+    "-Ywarn-value-discard",
+    "-Xfuture",
+    "-language:higherKinds",
+    "-language:implicitConversions"
+  )
+)
 
 lazy val hokko = crossProject
   .in(file("."))
@@ -61,9 +63,8 @@ lazy val hokko = crossProject
   .settings(publishSettings: _*)
   .settings(
     name := "hokko",
-    version := "0.4.0-SNAPSHOT",
     libraryDependencies ++= Seq(
-      "org.typelevel" %%% "cats"      % "0.7.2",
+      "org.typelevel" %%% "cats"      % "0.9.0",
       "org.scalatest" %%% "scalatest" % "3.0.1" % "test"
     )
   )
@@ -87,7 +88,6 @@ lazy val hokkoCollection = crossProject
   .settings(commonSettings: _*)
   .settings(
     name := "hokko-collection",
-    version := "0.4.0-SNAPSHOT",
     libraryDependencies ++= Seq(
       "com.chuusai" %%% "shapeless" % "2.3.2"
     )
@@ -102,9 +102,8 @@ lazy val hokkoBench = crossProject
   .settings(commonSettings: _*)
   .settings(
     name := "benchmark",
-    version := "0.4.0-SNAPSHOT",
     libraryDependencies ++= Seq(
-      "com.storm-enroute" %% "scalameter" % "0.7"
+      "com.storm-enroute" %% "scalameter" % "0.8.2"
     ),
     testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
     parallelExecution in Test := false
