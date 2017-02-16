@@ -13,9 +13,7 @@ class EventTest extends FRPTestSuite {
         "should have a current value equal to " +
           "the initial value when the source event has no occurrences") {
         check { (i: Int) =>
-          val beh           = src.fold(i)(_ + _)
-            .toDBehavior
-            .toCBehavior
+          val beh           = src.fold(i)(_ + _).toDBehavior.toCBehavior
           val engine        = Engine.compile(beh)
           val currentValues = engine.askCurrentValues()
           currentValues(beh).get == i

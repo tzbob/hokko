@@ -54,8 +54,7 @@ class ICollectionTest extends SeqIBehaviorTests {
 
         it("can be folded") {
           check {
-            (input: (List[Int], List[(Int, Int)]),
-             concPulses: List[List[Int]]) =>
+            (input: (List[Int], List[(Int, Int)]), concPulses: List[List[Int]]) =>
               val (initial, pulses) = input
 
               val constantInt = ICollection.constant(initial)

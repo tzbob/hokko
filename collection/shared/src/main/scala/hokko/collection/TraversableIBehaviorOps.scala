@@ -14,7 +14,7 @@ trait TraversableIBehaviorOps {
         implicit cbf: CanBuildFrom[Repr[A0], A0, Repr[A0]]
     ): IBehavior[Repr[A0], Delta[A0, Repr[A0]]] = {
       val appendDeltas = others.map(x => Concat[A0, Repr](x))
-      val newDeltas = Delta.combine(rep.deltas, appendDeltas)
+      val newDeltas    = Delta.combine(rep.deltas, appendDeltas)
       Delta.foldApply(rep.initial, newDeltas)
     }
 

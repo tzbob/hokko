@@ -55,7 +55,7 @@ case class Description[+Result](private val deps: Set[Primitive[_]],
   }
 
   def mapEngine[B](f: (Engine, Result) => B): Description[B] = {
-    val readE = identity[Engine] _
+    val readE     = identity[Engine] _
     val newReader = readE.map2(resultReader)(f)
     this.copy(resultReader = newReader)
   }

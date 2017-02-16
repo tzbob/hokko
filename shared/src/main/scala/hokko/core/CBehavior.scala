@@ -17,9 +17,11 @@ class CBehaviorSource[A](default: A) extends CBehavior[A] {
   def unSet(): Unit = this.source = None
 
   override private[core] val node: Pull[A] = CBehavior.fromPoll { () =>
-    source.map { f =>
-      f().getOrElse(default)
-    }.getOrElse(default)
+    source
+      .map { f =>
+        f().getOrElse(default)
+      }
+      .getOrElse(default)
   }.node
 }
 
@@ -82,6 +84,7 @@ object CBehavior
     }
   }
 
-  def source[A](default: A): CBehaviorSource[A] = new CBehaviorSource[A](default)
+  def source[A](default: A): CBehaviorSource[A] =
+    new CBehaviorSource[A](default)
 
 }
