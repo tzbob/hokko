@@ -26,14 +26,14 @@ lazy val publishSettings = Seq(
   },
   pomExtra :=
     <scm>
-      <url>git@github.com:Tzbob/scalatags-hokko.git</url>
-      <connection>scm:git:git@github.com:Tzbob/scalatags-hokko.git</connection>
+      <url>git@github.com:tzbob/scalatags-hokko.git</url>
+      <connection>scm:git:git@github.com:tzbob/scalatags-hokko.git</connection>
     </scm>
       <developers>
         <developer>
           <id>tzbob</id>
           <name>Bob Reynders</name>
-          <url>https://github.com/Tzbob</url>
+          <url>https://github.com/tzbob</url>
         </developer>
       </developers>
 )
@@ -58,7 +58,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val hokko = crossProject
-  .in(file("."))
+  .in(file("core"))
   .settings(commonSettings: _*)
   .settings(publishSettings: _*)
   .settings(
@@ -69,15 +69,10 @@ lazy val hokko = crossProject
     )
   )
   .jvmSettings(
-    // Add JVM-specific settings here
     libraryDependencies ++= Seq(
       "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
       "org.mockito"    % "mockito-all" % "1.8.5"  % "test"
     )
-  )
-  .jsSettings(
-    // Add JS-specific settings here
-    libraryDependencies ++= Seq()
   )
 
 lazy val hokkoJVM = hokko.jvm
