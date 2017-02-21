@@ -20,8 +20,15 @@ object Description extends FunctorSyntax with ApplySyntax {
         )
     }
 
-  def listen[A](b: CBehavior[A]): Description[A] =
-    Description.pure(()).listen(b) { (_, a) =>
+  def subscribeEngine[A](event: Event[A])(
+      handler: (Engine, A) => Unit): Description[Unit] =
+    Description.pure(()).subscribeEngine(event)(handler)
+
+  def subscribe[A](event: Event[A])(handler: A => Unit): Description[Unit] =
+    subscribeEngine(event)((_, a) => handler(a))
+
+  def read[A](b: CBehavior[A]): Description[A] =
+    Description.pure(()).read(b) { (_, a) =>
       a
     }
 
@@ -44,7 +51,7 @@ case class Description[+Result](private val deps: Set[Primitive[_]],
     subscribeEngine(event)(wrapped)
   }
 
-  def listen[A, B](b: CBehavior[A])(f: (Result, A) => B): Description[B] = {
+  def read[A, B](b: CBehavior[A])(f: (Result, A) => B): Description[B] = {
     val newDeps = this.deps + b
 
     // Get will be safe since b is added to deps

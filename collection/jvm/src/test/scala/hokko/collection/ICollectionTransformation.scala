@@ -9,7 +9,7 @@ import scala.language.existentials
 
 object ICollectionTransformation {
   def init[El, Coll](ic: ICollection[El, Coll]): Description[Coll] =
-    Description.listen(ic.toCBehavior)
+    Description.read(ic.toCBehavior)
 }
 
 case class ICollectionTransformation[El, Coll](
