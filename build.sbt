@@ -1,8 +1,24 @@
 resolvers += "Sonatype OSS Snapshots" at
   "https://oss.sonatype.org/content/repositories/snapshots"
 
+organization in ThisBuild := "be.tzbob"
 scalaVersion in ThisBuild := "2.12.1"
 version in ThisBuild := "0.4.1-SNAPSHOT"
+
+scalacOptions in ThisBuild ++= Seq(
+  "-encoding",
+  "UTF-8",
+  "-feature",
+  "-deprecation",
+  "-Xlint",
+  "-Yno-adapted-args",
+  "-Ywarn-dead-code",
+  "-Ywarn-numeric-widen",
+  "-Ywarn-value-discard",
+  "-Xfuture",
+  "-language:higherKinds",
+  "-language:implicitConversions"
+)
 
 lazy val root = project
   .in(file("."))
@@ -38,28 +54,8 @@ lazy val publishSettings = Seq(
       </developers>
 )
 
-lazy val commonSettings = Seq(
-  organization := "be.tzbob",
-  autoCompilerPlugins := true,
-  scalacOptions ++= Seq(
-    "-encoding",
-    "UTF-8",
-    "-feature",
-    "-deprecation",
-    "-Xlint",
-    "-Yno-adapted-args",
-    "-Ywarn-dead-code",
-    "-Ywarn-numeric-widen",
-    "-Ywarn-value-discard",
-    "-Xfuture",
-    "-language:higherKinds",
-    "-language:implicitConversions"
-  )
-)
-
 lazy val hokko = crossProject
   .in(file("core"))
-  .settings(commonSettings: _*)
   .settings(publishSettings: _*)
   .settings(
     name := "hokko",
@@ -80,7 +76,6 @@ lazy val hokkoJS  = hokko.js
 
 lazy val hokkoCollection = crossProject
   .in(file("collection"))
-  .settings(commonSettings: _*)
   .settings(
     name := "hokko-collection",
     libraryDependencies ++= Seq(
