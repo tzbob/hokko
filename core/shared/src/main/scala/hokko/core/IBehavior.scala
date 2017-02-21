@@ -68,15 +68,16 @@ object IBehavior
       acc
     }
 
-  private[core] def fromDiscreteAndDeltas[A, DeltaA](init: A,
-                                                     db: DBehavior[A],
-                                                     ev: Event[DeltaA]) =
-    new IBehavior[A, DeltaA] {
-      val initial               = init
-      val node                  = db.node
-      val changes: Event[A]     = db.changes
-      val deltas: Event[DeltaA] = ev
-    }
+  // TODO: Is this needed?
+//  private[core] def fromDiscreteAndDeltas[A, DeltaA](init: A,
+//                                                     db: DBehavior[A],
+//                                                     ev: Event[DeltaA]) =
+//    new IBehavior[A, DeltaA] {
+//      val initial               = init
+//      val node                  = db.node
+//      val changes: Event[A]     = db.changes
+//      val deltas: Event[DeltaA] = ev
+//    }
 
   private[core] def folded[A, DeltaA](foldee: Event[DeltaA],
                                       init: A,

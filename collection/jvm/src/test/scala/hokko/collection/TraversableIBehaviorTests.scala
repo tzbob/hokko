@@ -7,7 +7,7 @@ import hokko.core._
 
 import scala.collection.mutable.ListBuffer
 
-trait TraversableIBehaviorTests extends FRPTestSuite {
+trait TraversableIBehaviorTests extends FRPSpecSuite {
 
   def mkOccurrencesWithTransformation[A, Repr](
       ic: ICollection[A, Repr],

@@ -1,15 +1,14 @@
 package hokko.core
 
-import org.scalacheck.Arbitrary._
-import org.scalacheck.Prop._
-import org.scalatest.{FunSpec, Matchers}
 import org.scalatest.prop.Checkers
+import org.scalatest.{FunSpec, Matchers}
 
-import scala.collection.immutable.Seq
 import scala.collection.mutable.ListBuffer
 import scala.language.{existentials, reflectiveCalls}
 
-trait FRPTestSuite extends FunSpec with Checkers with Matchers {
+trait FRPSpecSuite extends FunSpec with FRPSuite with Checkers with Matchers
+
+trait FRPSuite {
   def mkOccurrences[A](ev: Event[A])(
       performSideEffects: Engine => Unit): List[A] = {
     val engine      = Engine.compile(ev)

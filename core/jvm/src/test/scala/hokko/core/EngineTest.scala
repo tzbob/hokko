@@ -5,25 +5,24 @@ import org.scalatest.Matchers
 import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito._
 
-class EngineTest extends FunSpec with Matchers with MockitoSugar {
+class EngineTest extends FunSpec with Matchers {
 
-  def N(v: Int, dependencies: List[Node[_]] = Nil, level: Int = 0) = {
-    val node = mock[Node[Any]]
-    when(node.dependencies).thenReturn(dependencies)
-    when(node.level).thenReturn(level)
-    node
-  }
+  def N(v: Int, deps: List[Node[_]] = Nil) =
+    new Pull[Any] {
+      val dependencies: List[Node[_]]             = deps
+      def thunk(context: TickContext): Thunk[Any] = Thunk.eager(null)
+    }
 
   lazy val n1         = N(1)
   lazy val n2         = N(2)
-  lazy val simpleTree = N(3, List(n1, n2), 1)
+  lazy val simpleTree = N(3, List(n1, n2))
   lazy val simpleDescendants: Node[_] => Set[Node[_]] = { n =>
     if (n == simpleTree) Set(n1, n2)
     else Set.empty
   }
 
   lazy val n1a = N(4)
-  lazy val n2a = N(5, List(n1a), 1)
+  lazy val n2a = N(5, List(n1a))
   lazy val allDescendants: Node[_] => Set[Node[_]] = { n =>
     if (n == n2a) Set(n1a)
     else simpleDescendants(n)

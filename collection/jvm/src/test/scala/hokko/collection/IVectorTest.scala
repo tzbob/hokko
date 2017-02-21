@@ -1,8 +1,8 @@
 package hokko.collection
 
-import hokko.core.{Event, FRPTestSuite}
+import hokko.core.{Event, FRPSpecSuite}
 
-class IVectorTest extends FRPTestSuite {
+class IVectorTest extends FRPSpecSuite {
   describe("IVectors") {
     describe("that have deletions") {
 
