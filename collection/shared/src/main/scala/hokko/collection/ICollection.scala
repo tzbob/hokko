@@ -15,15 +15,5 @@ object ICollection {
                   cbf: CanBuildFrom[Repr, _, Repr]): ICollection[itl.A, Repr] =
     IBehavior.constant[Repr, Delta[itl.A, Repr]](cbf.apply().result())
 
-  object implicits extends TraversableIBehaviorOps with SeqIBehaviorOps {
-//
-//    val test                                 = ICollection.empty[Vector[Int]]
-//    val testo                                = ICollection.empty[Set[Int]]
-//    val concat: Event[List[Int]]             = ???
-//    val insert: Event[(Int, List[Int], Int)] = ???
-//
-//    testo ++ concat
-//    test.patch(insert)
-  }
-
+  object implicits extends TraversableIBehaviorOps with SeqIBehaviorOps
 }

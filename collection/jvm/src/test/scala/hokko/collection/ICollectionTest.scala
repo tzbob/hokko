@@ -72,6 +72,31 @@ class ICollectionTest extends SeqIBehaviorTests {
           }
         }
 
+        it("can be mapped") {
+          check {
+            (input: (List[Int], List[(Int, Int)]), concPulses: List[List[Int]]) =>
+              val (initial, pulses) = input
+
+              val constantInt = ICollection.constant(initial)
+
+              val transformation =
+                updated(pulses)
+                  .chain(append(initial))
+                  .chain(prepend(initial))
+                  .chain(concatenate(concPulses))
+
+              val (changes, transformationResults) =
+                mkOccurrencesWithTransformationF(constantInt, transformation) {
+                  (ic: ICollection[Int, List[Int]]) =>
+                    ic.map(_ * 2).changes
+                }
+
+              val expectedResults = transformationResults.map(_.map(_ * 2))
+
+              changes === expectedResults.tail
+          }
+        }
+
         it("can be folded") {
           check {
             (input: (List[Int], List[(Int, Int)]), concPulses: List[List[Int]]) =>
