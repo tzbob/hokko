@@ -41,8 +41,8 @@ object CBehavior
     with FunctorSyntax
     with SnapshottableSyntax[Event, CBehavior] {
 
-  implicit val hokkoCBehaviorInstances: tc.Snapshottable[CBehavior, Event] with Applicative[
-    CBehavior] =
+  implicit val hokkoCBehaviorInstances
+    : tc.Snapshottable[CBehavior, Event] with Applicative[CBehavior] =
     new tc.Snapshottable[CBehavior, Event] with Applicative[CBehavior] {
       def pure[A](x: A): CBehavior[A] = constant(x)
 

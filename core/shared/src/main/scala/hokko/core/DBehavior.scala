@@ -31,8 +31,8 @@ object DBehavior
     with ApplySyntax
     with FunctorSyntax
     with SnapshottableSyntax[Event, DBehavior] {
-  implicit val hokkoDBehaviorInstances: tc.Snapshottable[DBehavior, Event] with Applicative[
-    DBehavior] =
+  implicit val hokkoDBehaviorInstances
+    : tc.Snapshottable[DBehavior, Event] with Applicative[DBehavior] =
     new tc.Snapshottable[DBehavior, Event] with Applicative[DBehavior] {
       def pure[A](x: A): DBehavior[A] = constant(x)
       def ap[A, B](ff: DBehavior[A => B])(fa: DBehavior[A]): DBehavior[B] =

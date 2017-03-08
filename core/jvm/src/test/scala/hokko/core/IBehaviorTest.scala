@@ -34,7 +34,5 @@ class IBehaviorTest extends FunSuite with FRPSuite with Checkers {
   }
 
   // FIXME
-  test("IBehaviors incrementally map 2") {
-
-  }
+  test("IBehaviors incrementally map 2") {}
 }

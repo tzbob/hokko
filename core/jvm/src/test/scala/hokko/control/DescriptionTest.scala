@@ -6,7 +6,7 @@ import org.scalatest.FunSuite
 class DescriptionTest extends FunSuite {
 
   test("Descriptions can be used to read behaviors") {
-    var int = 0
+    var int    = 0
     val intSrc = CBehavior.source(0)
     intSrc.changeSource(Some(int))
 
@@ -20,10 +20,12 @@ class DescriptionTest extends FunSuite {
   test("Descriptions can be used to subscribe on evens") {
     val src = Event.source[Int]
 
-    val network = Description.subscribe(src) { e =>
-      assert(e === 10)
-      ()
-    }.compile()
+    val network = Description
+      .subscribe(src) { e =>
+        assert(e === 10)
+        ()
+      }
+      .compile()
 
     network.engine.fire(Seq(src -> 10))
   }
