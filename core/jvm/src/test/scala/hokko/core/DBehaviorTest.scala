@@ -22,8 +22,8 @@ class DBehaviorTest extends FunSuite with FRPSuite with Checkers {
       n
     }
     .toDBehavior
-  test("DBehaviors can be applied") {
 
+  test("DBehaviors can be applied") {
     val bPoorMansDouble = bParam.map { (i: Int) => (int: Int) =>
       int + i
     }
