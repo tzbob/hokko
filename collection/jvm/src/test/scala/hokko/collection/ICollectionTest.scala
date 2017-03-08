@@ -2,6 +2,7 @@ package hokko.collection
 
 import hokko.collection.ICollection.ICollection
 import hokko.collection.ICollection.implicits._
+import hokko.core.Event
 
 class ICollectionTest extends SeqIBehaviorTests {
   describe("ICollections") {
@@ -52,10 +53,28 @@ class ICollectionTest extends SeqIBehaviorTests {
           }
         }
 
+        it("can be prepended and appended at once") {
+          check { (initial: List[Int], pulses: List[Int]) =>
+            val constantInt = ICollection.constant(initial)
+
+            val evtSrc      = Event.source[Int]
+            val preAppended = (evtSrc +: constantInt) :+ evtSrc
+
+            val results =
+              mkOccurrencesWithPulses(preAppended.changes)(evtSrc, pulses)
+
+            val expected =
+              pulses.scanLeft(initial) { (acc, newPulse) =>
+                (newPulse +: acc) :+ newPulse
+              }
+
+            results === expected.tail
+          }
+        }
+
         it("can be folded") {
           check {
-            (input: (List[Int], List[(Int, Int)]),
-             concPulses: List[List[Int]]) =>
+            (input: (List[Int], List[(Int, Int)]), concPulses: List[List[Int]]) =>
               val (initial, pulses) = input
 
               val constantInt = ICollection.constant(initial)
