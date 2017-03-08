@@ -10,6 +10,11 @@ class ICollectionTest extends SeqIBehaviorTests {
     implicit val arb = arbitraryUpdated[Int]
 
     describe("that are traversable") {
+      it("can be created as empty") {
+        val setIC = ICollection.empty[Set[Int]]
+        assert(setIC.initial === Set.empty[Int])
+      }
+
       it("can be concatenated") {
         check { (initial: List[Int], pulses: List[List[Int]]) =>
           val constantInt = ICollection.constant(initial)
