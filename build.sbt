@@ -3,6 +3,7 @@ resolvers += "Sonatype OSS Snapshots" at
 
 organization in ThisBuild := "be.tzbob"
 scalaVersion in ThisBuild := "2.12.1"
+crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.1")
 version in ThisBuild := "0.4.1-SNAPSHOT"
 
 scalacOptions in ThisBuild ++= Seq(
@@ -76,6 +77,7 @@ lazy val hokkoJS  = hokko.js
 
 lazy val hokkoCollection = crossProject
   .in(file("collection"))
+  .settings(publishSettings: _*)
   .settings(
     name := "hokko-collection",
     libraryDependencies ++= Seq(
