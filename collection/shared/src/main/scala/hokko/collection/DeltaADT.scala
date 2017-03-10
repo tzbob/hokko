@@ -12,6 +12,7 @@ import scala.collection.{
 }
 
 object Delta {
+
   def combineDelta[El, Coll](d1: Delta[El, Coll],
                              d2: Delta[El, Coll]): Delta[El, Coll] =
     (d1, d2) match {
@@ -39,10 +40,10 @@ object Delta {
       case Id() => acc
       case Combined(d1, d2) =>
         applyFoldUndo(applyFoldUndo(acc, d1, op, undo), d2, op, undo)
-      case Concat(others) => others.foldLeft(acc)(op)
-      case p @ Patch(_, patch, _, removed) =>
-        val accWithNewElements = patch.foldLeft(acc)(op)
-        removed.foldLeft(accWithNewElements)(undo)
+      case Concat(others)                 => others.foldLeft(acc)(op)
+      case u @ Updated(_, previous, next) => undo(op(acc, next), previous)
+      case p @ Prepend(el)                => op(acc, el)
+      case a @ Append(el)                 => op(acc, el)
     }
   }
 
@@ -50,20 +51,13 @@ object Delta {
       implicit cbfMap: CanBuildFrom[Repr[A], B, Repr[B]],
       cbfDelta: CanBuildFrom[Repr[B], B, Repr[B]]): Delta[B, Repr[B]] =
     delta match {
-      case Id()                  => Id()
-      case Combined(d1, d2)      => combineDelta(map(d1, f), map(d2, f))
-      case c @ Concat(_)         => c.map(f)
-      case p @ Patch(_, _, _, _) => p.map(f)
+      case Id()                 => Id()
+      case Combined(d1, d2)     => combineDelta(map(d1, f), map(d2, f))
+      case c @ Concat(_)        => c.map(f)
+      case u @ Updated(_, _, _) => u.map(f)
+      case p @ Prepend(_)       => p.map(f)
+      case a @ Append(_)        => a.map(f)
     }
-
-//  def filter[A, Repr[_]](delta: Delta[A, Repr[A]],
-//                         p: A => Boolean): Delta[A, Repr[A]] =
-//    delta match {
-//      case Id()                  => Id()
-//      case Combined(d1, d2)      => combineDelta(filter(d1, p), filter(d2, p))
-//      case c @ Concat(_)         => c.filter(p)
-//      case p @ Patch(_, _, _, _) => p.filter(p)
-//    }
 }
 
 sealed trait Delta[+El, Coll] {
@@ -95,80 +89,42 @@ case class Concat[A0, Repr[A] <: TraversableLike[A, Repr[A]]](
   def map[B](f: A0 => B)(
       implicit cbfMap: CanBuildFrom[Repr[B], B, Repr[B]]): Concat[B, Repr] =
     Concat(that.map(f))
-
-//  def filter[B](p: A0 => B)(implicit cbfMap: CanBuildFrom[Repr[B], B, Repr[B]])
-//    : Delta[B, Repr[B]] = {
-//    val filtered = that.filter(p)
-//    if (filtered.isEmpty) Id()
-//    else Concat(filtered)
-//  }
-
 }
 
-case class Patch[A0, Repr[A] <: SeqLike[A, Repr[A]]](
-    from: Int,
-    patch: GenSeq[A0],
-    replaced: Int,
-    removedElements: TraversableOnce[A0])(
+case class Append[A0, Repr[A] <: SeqLike[A, Repr[A]]](el: A0)(
+    implicit canBuildFrom: CanBuildFrom[Repr[A0], A0, Repr[A0]]
+) extends Delta[A0, Repr[A0]] {
+  def apply(c: Repr[A0]): Repr[A0]                   = c :+ el
+  def mapIndex(f: (Int) => Int): Delta[A0, Repr[A0]] = ???
+
+  def map[B](f: A0 => B)(
+      implicit cbfMap: CanBuildFrom[Repr[B], B, Repr[B]]): Append[B, Repr] =
+    Append(f(el))
+}
+
+case class Prepend[A0, Repr[A] <: SeqLike[A, Repr[A]]](el: A0)(
+    implicit canBuildFrom: CanBuildFrom[Repr[A0], A0, Repr[A0]]
+) extends Delta[A0, Repr[A0]] {
+  def apply(c: Repr[A0]): Repr[A0]                   = el +: c
+  def mapIndex(f: (Int) => Int): Delta[A0, Repr[A0]] = ???
+
+  def map[B](f: A0 => B)(
+      implicit cbfMap: CanBuildFrom[Repr[B], B, Repr[B]]): Prepend[B, Repr] =
+    Prepend(f(el))
+}
+
+case class Updated[A0, Repr[A] <: SeqLike[A, Repr[A]]](index: Int,
+                                                       previous: A0,
+                                                       next: A0)(
     implicit cbf: CanBuildFrom[Repr[A0], A0, Repr[A0]]
 ) extends Delta[A0, Repr[A0]] {
   override def apply(c: Repr[A0]): Repr[A0] =
-    c.patch(from, patch, replaced)
+    c.updated(index, next)
 
-  override def mapIndex(f: (Int) => Int) = this.copy(from = f(this.from))
+  override def mapIndex(f: (Int) => Int) = this.copy(index = f(this.index))
 
   def map[B](f: A0 => B)(
-      implicit cbfMap: CanBuildFrom[Repr[B], B, Repr[B]]): Patch[B, Repr] = {
-    Patch(from, patch.map(f), replaced, removedElements.map(f))
+      implicit cbfMap: CanBuildFrom[Repr[B], B, Repr[B]]): Updated[B, Repr] = {
+    Updated(index, f(previous), f(next))
   }
-
-//  def filter[B](p: A0 => B)(implicit cbfMap: CanBuildFrom[Repr[B], B, Repr[B]])
-//    : Delta[B, Repr[B]] = {
-//    val filtered = patch.filter(p)
-//    if (filtered.isEmpty) Id()
-//    else {}
-//  }
 }
-
-//
-////  def filter[A](f: A => Boolean)(d: Delta[A]): Delta[A] = d match {
-////    case Empty => Empty
-////    case Update(pel, nel, idx) =>
-////      if (f(nel)) Update(pel, nel, idx)
-////      else Remove(pel, idx)
-////    case Insert(el, idx) =>
-////      if (f(el)) Insert(el, idx)
-////      else Remove(el, idx)
-////    case Remove(el, idx) =>
-////      Remove(el, idx)
-////    case Combined(d1, d2) => combine(filter(f)(d), filter(f)(d))
-////  }
-//
-//  def map[A, B](d: Delta[A])(f: (A, Int) => (B, Int)): Delta[B] =
-//    d match {
-//      case Combined(d1, d2) => combine(map(d1)(f), map(d2)(f))
-//      case Update(pel, nel, idx) =>
-//        val (pel0, newIdx) = f(pel, idx)
-//        val (nel0, _)      = f(nel, idx)
-//        Update(pel0, nel0, newIdx)
-//      case Insert(a, idx) =>
-//        val (b, newIdx) = f(a, idx)
-//        Insert(b, newIdx)
-//      case Remove(a, idx) =>
-//        val (b, newIdx) = f(a, idx)
-//        Remove(b, newIdx)
-//      case Empty => Empty
-//    }
-//
-//  def mapIndex[A](d: Delta[A])(f: Int => Int): Delta[A] =
-//    map(d) { (el, idx) =>
-//      (el, f(idx))
-//    }
-//
-//  def mapElement[A, B](d: Delta[A])(f: A => B): Delta[B] =
-//    map(d) { (el, idx) =>
-//      (f(el), idx)
-//    }
-//
-//  def translate[A](d: Delta[A], sum: Int): Delta[A] =
-//    mapIndex(d)(_ + sum)

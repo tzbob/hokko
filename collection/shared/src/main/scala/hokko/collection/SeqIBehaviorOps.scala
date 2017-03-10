@@ -11,17 +11,33 @@ trait SeqIBehaviorOps {
   implicit class SeqIBehavior[A0, Repr[A0] <: SeqLike[A0, Repr[A0]]](
       rep: ICollection[A0, Repr[A0]])(implicit isl: IslAux[Repr[A0], A0]) {
 
-    def patch(patches: Event[(Int, GenSeq[A0], Int)])(
+    private def pendOperation(pend: Event[A0])(f: A0 => Delta[A0, Repr[A0]]) = {
+      val prependsDelta = pend.map(f)
+      val newDeltas     = Delta.combine(rep.deltas, prependsDelta)
+      Delta.foldApply(rep.initial, newDeltas)
+    }
+
+    def :+(append: Event[A0])(
+        implicit cbf: CanBuildFrom[Repr[A0], A0, Repr[A0]])
+      : ICollection[A0, Repr[A0]] =
+      pendOperation(append)(Append.apply[A0, Repr])
+
+    def +:(prepends: Event[A0])(
+        implicit cbf: CanBuildFrom[Repr[A0], A0, Repr[A0]])
+      : ICollection[A0, Repr[A0]] =
+      pendOperation(prepends)(Prepend.apply[A0, Repr])
+
+    def updated(updates: Event[(Int, A0)])(
         implicit cbf: CanBuildFrom[Repr[A0], A0, Repr[A0]])
       : ICollection[A0, Repr[A0]] = {
 
       // map deltas and patches onto left and right
       val lefties =
-        rep.deltas.map(Ior.left[Delta[A0, Repr[A0]], (Int, GenSeq[A0], Int)])
+        rep.deltas.map(Ior.left[Delta[A0, Repr[A0]], (Int, A0)])
       val righties =
-        patches.map(Ior.right[Delta[A0, Repr[A0]], (Int, GenSeq[A0], Int)])
+        updates.map(Ior.right[Delta[A0, Repr[A0]], (Int, A0)])
 
-      // combine deltas and patches into one event (simultaneous occurences
+      // combine deltas and updates into one event (simultaneous occurences
       // are merged into Ior.both
       val combined = lefties.unionWith(righties) {
         case (Ior.Left(delta), Ior.Right(prepatch)) =>
@@ -32,9 +48,9 @@ trait SeqIBehaviorOps {
       // fold combined deltas and patches into an incremental behavior that
       // tracks both the value as well as any patches that were applied
       // 1. start with (initial value, None)
-      val ib: IBehavior[(Repr[A0], Option[Patch[A0, Repr]]),
-                        Ior[Delta[A0, Repr[A0]], (Int, GenSeq[A0], Int)]] =
-        combined.fold(rep.initial -> Option.empty[Patch[A0, Repr]]) {
+      val ib: IBehavior[(Repr[A0], Option[Updated[A0, Repr]]),
+                        Ior[Delta[A0, Repr[A0]], (Int, A0)]] =
+        combined.fold(rep.initial -> Option.empty[Updated[A0, Repr]]) {
           (acc, ior) =>
             ior match {
               // 2. delta (left) => (apply to previous value, None)
@@ -43,19 +59,15 @@ trait SeqIBehaviorOps {
               // a) calculate removed elements
               // b) create patch delta
               // c) (apply patch, patch)
-              case Ior.Right((from, newElements, replaced)) =>
-                val oldElements = acc._1.slice(from, from + replaced)
-                val patch =
-                  Patch[A0, Repr](from, newElements, replaced, oldElements)
-                patch(acc._1) -> Some(patch)
+              case Ior.Right((idx, next)) =>
+                val update = Updated[A0, Repr](idx, acc._1(idx), next)
+                update(acc._1) -> Some(update)
               // 4. new delta and patch =>
               // repeat 3.
               // (apply patch apply delta, patch)
-              case Ior.Both(delta, (from, newElements, replaced)) =>
-                val oldElements = acc._1.slice(from, from + replaced)
-                val patch =
-                  Patch[A0, Repr](from, newElements, replaced, oldElements)
-                patch(delta(acc._1)) -> Some(patch)
+              case Ior.Both(delta, (idx, next)) =>
+                val update = Updated[A0, Repr](idx, acc._1(idx), next)
+                update(delta(acc._1)) -> Some(update)
             }
         }
 
@@ -78,29 +90,5 @@ trait SeqIBehaviorOps {
         x(acc)
       }
     }
-
-    def :+(appends: Event[A0])(
-        implicit cbf: CanBuildFrom[Repr[A0], A0, Repr[A0]])
-      : ICollection[A0, Repr[A0]] = {
-      val nbAppends = appends.fold(0) { (acc, _) =>
-        acc + 1
-      }
-      val size = rep.toDBehavior.map2(nbAppends.toDBehavior)(_.length + _)
-
-      val patches = size.snapshotWith(appends) { (size, newElement) =>
-        (size, List(newElement), 0)
-      }
-      patch(patches)
-    }
-
-    def +:(prepends: Event[A0])(
-        implicit cbf: CanBuildFrom[Repr[A0], A0, Repr[A0]])
-      : ICollection[A0, Repr[A0]] =
-      patch(prepends.map(x => (0, List(x), 0)))
-
-    def updated(updates: Event[(Int, A0)])(
-        implicit cbf: CanBuildFrom[Repr[A0], A0, Repr[A0]])
-      : ICollection[A0, Repr[A0]] =
-      patch(updates.map { case (idx, el) => (idx, List(el), 1) })
   }
 }
