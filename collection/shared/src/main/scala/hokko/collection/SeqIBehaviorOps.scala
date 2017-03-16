@@ -30,7 +30,6 @@ trait SeqIBehaviorOps {
     def updated(updates: Event[(Int, A0)])(
         implicit cbf: CanBuildFrom[Repr[A0], A0, Repr[A0]])
       : ICollection[A0, Repr[A0]] = {
-
       // map deltas and patches onto left and right
       val lefties =
         rep.deltas.map(Ior.left[Delta[A0, Repr[A0]], (Int, A0)])
@@ -71,24 +70,17 @@ trait SeqIBehaviorOps {
             }
         }
 
-      // mold ib into the incremental behavior that we need: an incremental
-      // behavior build from deltas (including the patches from ib)
-      ib.incMap2(ib) { (ibS, _) =>
-        ibS._1
-      } {
-        case (ibS, _, Ior.Both(ior, _)) =>
-          ior match {
-            case Ior.Left(delta)     => Some(delta)
-            case Ior.Right(prepatch) => ibS._2
-            case Ior.Both(delta, prepatch) =>
-              ibS._2.map(Delta.combineDelta(delta, _))
-          }
-        case _ => throw new RuntimeException()
-      } { (acc, x) =>
-        // TODO: This is the second time that this value is computed, we need
-        // a way to store the old value in DeltaC without exposing it
-        x(acc)
+      val newDeltas = ib.snapshotWith(ib.deltas) { (state, delta) =>
+        (delta.left, state._2) match {
+          // Either the left is defined (an old delta)
+          // or the right is defined (a new Updated)
+          case (Some(oldDelta), other) =>
+            other.map(Delta.combineDelta(oldDelta, _)).getOrElse(oldDelta)
+          case (None, other) => other.get
+        }
       }
+
+      Delta.foldApply(rep.initial, newDeltas)
     }
   }
 }

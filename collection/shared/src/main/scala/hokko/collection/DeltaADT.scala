@@ -2,9 +2,8 @@ package hokko.collection
 
 import hokko.core.{Event, IBehavior}
 
-import scala.collection.generic.{CanBuildFrom, IsSeqLike, IsTraversableLike}
+import scala.collection.generic.CanBuildFrom
 import scala.collection.{
-  GenSeq,
   GenTraversable,
   SeqLike,
   TraversableLike,
