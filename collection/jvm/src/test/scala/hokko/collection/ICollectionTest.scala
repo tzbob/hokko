@@ -2,6 +2,7 @@ package hokko.collection
 
 import hokko.collection.ICollection.ICollection
 import hokko.collection.ICollection.implicits._
+import hokko.control.Description
 import hokko.core.Event
 
 class ICollectionTest extends SeqIBehaviorTests {
@@ -54,7 +55,14 @@ class ICollectionTest extends SeqIBehaviorTests {
             val (changes, expected) =
               mkOccurrencesWithTransformation(constantInt, updated(pulses))
 
-            changes === expected.tail
+            val evtSrc  = Event.source[(Int, Int)]
+            val updatedIb = constantInt.updated(evtSrc)
+
+            // FIXME: Add this test to everything through transformations
+            val network = Description.read(updatedIb.toCBehavior).compile()
+            fireAll(evtSrc, pulses)(network.engine)
+
+            changes === expected.tail && expected.last === network.now()
           }
         }
 
