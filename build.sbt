@@ -88,19 +88,3 @@ lazy val hokkoCollection = crossProject
 
 lazy val hokkoCollectionJVM = hokkoCollection.jvm
 lazy val hokkoCollectionJS  = hokkoCollection.js
-
-//lazy val hokkoBench = crossProject
-//  .in(file("benchmark"))
-//  .settings(commonSettings: _*)
-//  .settings(
-//    name := "benchmark",
-//    libraryDependencies ++= Seq(
-//      "com.storm-enroute" %% "scalameter" % "0.8.2"
-//    ),
-//    testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
-//    parallelExecution in Test := false
-//  )
-//  .dependsOn(hokko, hokkoCollection)
-//
-//lazy val hokkoBenchJVM = hokkoBench.jvm
-//lazy val hokkoBenchJS = hokkoBench.js
