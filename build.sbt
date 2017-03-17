@@ -30,7 +30,7 @@ lazy val root = project
   )
 
 lazy val publishSettings = Seq(
-  homepage := Some(url("https://github.com/Tzbob/scalatags-hokko")),
+  homepage := Some(url("https://github.com/Tzbob/hokko")),
   licenses := Seq(
     "MIT" -> url("https://opensource.org/licenses/mit-license.php")),
   publishMavenStyle := true,
@@ -43,8 +43,8 @@ lazy val publishSettings = Seq(
   },
   pomExtra :=
     <scm>
-      <url>git@github.com:tzbob/scalatags-hokko.git</url>
-      <connection>scm:git:git@github.com:tzbob/scalatags-hokko.git</connection>
+      <url>git@github.com:tzbob/hokko.git</url>
+      <connection>scm:git:git@github.com:tzbob/hokko.git</connection>
     </scm>
       <developers>
         <developer>
