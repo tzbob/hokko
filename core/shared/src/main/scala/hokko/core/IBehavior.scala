@@ -18,6 +18,14 @@ trait IBehavior[+A, +DeltaA] extends Primitive[A] {
     newDeltas.fold(newInitial)(accumulator)
   }
 
+  // TODO: this should be incMap
+  def incMapS[B, DeltaB](fa: A => B)(fb: (A, DeltaA) => DeltaB)(
+      accumulator: (B, DeltaB) => B): IBehavior[B, DeltaB] = {
+    val newDeltas  = this.snapshotWith(this.deltas)(fb)
+    val newInitial = fa(initial)
+    newDeltas.fold(newInitial)(accumulator)
+  }
+
   def incMap2[B, DeltaB, C, DeltaC](b: IBehavior[B, DeltaB])(
       valueFun: (A, B) => C)(
       deltaFun: (A, B, Ior[DeltaA, DeltaB]) => Option[DeltaC])(
