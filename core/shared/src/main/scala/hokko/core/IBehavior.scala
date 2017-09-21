@@ -58,6 +58,10 @@ trait IBehavior[+A, +DeltaA] extends Primitive[A] {
   }
 
   def toCBehavior[AA >: A]: CBehavior[AA] = toDBehavior.toCBehavior
+
+  def resetState[AA >: A](resetter: Event[AA]): IBehavior[AA, DeltaA] =
+    IBehavior.reset(resetter, this)
+
 }
 
 object IBehavior
@@ -75,17 +79,6 @@ object IBehavior
     Event.empty[DeltaA].fold(init) { (acc, _) =>
       acc
     }
-
-  // TODO: Is this needed?
-//  private[core] def fromDiscreteAndDeltas[A, DeltaA](init: A,
-//                                                     db: DBehavior[A],
-//                                                     ev: Event[DeltaA]) =
-//    new IBehavior[A, DeltaA] {
-//      val initial               = init
-//      val node                  = db.node
-//      val changes: Event[A]     = db.changes
-//      val deltas: Event[DeltaA] = ev
-//    }
 
   private[core] def folded[A, DeltaA](foldee: Event[DeltaA],
                                       init: A,
@@ -114,5 +107,29 @@ object IBehavior
     }
     def thunk(c: TickContext): Thunk[A] =
       Thunk.eager(c.getPulse(this).orElse(c.getState(this)).getOrElse(init))
+  }
+
+  private def reset[A, DeltaA](ev: Event[A], ib: IBehavior[A, DeltaA]) =
+    new IBehavior[A, DeltaA] {
+      val initial: A                  = ib.initial
+      override private[core] val node = new ResetNode(ev, ib)
+      def changes                     = ib.changes
+      def deltas                      = ib.deltas
+    }
+
+  private case class ResetNode[A, DeltaA](
+      ev: Event[A],
+      ib: IBehavior[A, DeltaA]
+  ) extends DBehavior.PullStatePush[A] {
+    val dependencies = List(ev.node, ib.node)
+
+    override def state(context: TickContext): Option[A] =
+      context.getPulse(ev.node)
+
+    def pulse(context: TickContext): Option[A] =
+      context.getPulse(ib.changes.node)
+
+    def thunk(c: TickContext): Thunk[A] =
+      c.getThunk(ib.node).get
   }
 }
