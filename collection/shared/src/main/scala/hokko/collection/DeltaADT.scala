@@ -11,7 +11,6 @@ import scala.collection.{
 }
 
 object Delta {
-
   def combineDelta[El, Coll](d1: Delta[El, Coll],
                              d2: Delta[El, Coll]): Delta[El, Coll] =
     (d1, d2) match {

@@ -4,7 +4,7 @@ resolvers += "Sonatype OSS Snapshots" at
 organization in ThisBuild := "be.tzbob"
 scalaVersion in ThisBuild := "2.12.1"
 crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.1")
-version in ThisBuild := "0.4.3-SNAPSHOT"
+version in ThisBuild := "0.4.4-SNAPSHOT"
 
 scalacOptions in ThisBuild ++= Seq(
   "-encoding",

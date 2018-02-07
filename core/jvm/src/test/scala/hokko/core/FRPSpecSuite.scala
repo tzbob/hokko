@@ -9,6 +9,18 @@ import scala.language.{existentials, reflectiveCalls}
 trait FRPSpecSuite extends FunSpec with FRPSuite with Checkers with Matchers
 
 trait FRPSuite {
+  def mkOccurrencesWithDependencies[A](ev: Event[A])(primitives: Primitive[_]*)(
+      performSideEffects: Engine => Unit): List[A] = {
+    val engine      = Engine.compile(ev :: primitives.toList)
+    val occurrences = ListBuffer.empty[A]
+    val subscription = engine.subscribeForPulses {
+      _(ev).foreach(occurrences += _)
+    }
+    performSideEffects(engine)
+    subscription.cancel()
+    occurrences.toList
+  }
+
   def mkOccurrences[A](ev: Event[A])(
       performSideEffects: Engine => Unit): List[A] = {
     val engine      = Engine.compile(ev)

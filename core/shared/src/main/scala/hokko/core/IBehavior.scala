@@ -130,6 +130,6 @@ object IBehavior
       context.getPulse(ib.changes.node)
 
     def thunk(c: TickContext): Thunk[A] =
-      c.getThunk(ib.node).get
+      c.getPulse(ev.node).map(Thunk.eager).orElse(c.getThunk(ib.node)).get
   }
 }
