@@ -36,25 +36,42 @@ class IBehaviorTest extends FunSuite with FRPSuite with Checkers {
   test("IBehaviors incrementally map 2") {}
 
   test("IBehaviors can be reset without producing pulses") {
+    val init = 5
+
+    val source   = Event.source[Int]
     val resetter = Event.source[Int]
-    val const    = IBehavior.constant(5)
-    val resetted = const.resetState(resetter)
+
+    val reset = source.resetFold(resetter)(init)(_ + _)
 
     check { (ints: List[Int]) =>
-      val cBehavior = resetted.toCBehavior
+      val cBehavior = reset.toCBehavior
+
+      val initAfterReset = (init :: ints).last
+      val totalSum       = (initAfterReset :: ints).sum
 
       val occs =
-        mkOccurrencesWithDependencies(resetted.changes)(cBehavior) {
+        mkOccurrencesWithDependencies(reset.changes)(cBehavior) {
           implicit
           engine =>
+            // Tests resetting value
             fireAll(resetter, ints)
             val currentValues = engine.askCurrentValues()
-            val value         = currentValues(cBehavior)
-            println(value)
-            value.get === (5 :: ints).last
+            val resetResult   = currentValues(cBehavior)
+
+            val isValueReset = resetResult.get === initAfterReset
+
+            // Tests if fold starts from reset value
+            fireAll(source, ints)
+            val foldAfterResetResult = engine.askCurrentValues()(cBehavior)
+
+            val doesFoldStartFromReset = resetResult.get === totalSum
+
+            isValueReset && doesFoldStartFromReset
         }
 
-      occs === List()
+
+      val changes = ints.scan(initAfterReset)(_ + _).drop(1)
+      occs === changes
     }
   }
 }

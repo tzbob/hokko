@@ -6,6 +6,10 @@ import hokko.syntax.EventSyntax
 
 sealed trait Event[+A] extends Primitive[A] {
   override private[core] val node: Push[A]
+
+  def resetFold[B](resetter: Event[B])(init: B)(
+      f: (B, A) => B): IBehavior[B, A] =
+    IBehavior.resetFolded(this, resetter, init, f)
 }
 
 final class EventSource[+A](private[core] val node: Push[A]) extends Event[A]
@@ -40,9 +44,9 @@ object Event extends EventSyntax[Event, IBehavior] with FunctorSyntax {
   def source[A]: EventSource[A] = new EventSource[A](empty[A].node)
 
   def merge[A](events: Seq[Event[A]]): Event[Seq[A]] = events match {
-    case Seq()            => empty
-    case Seq(x)           => x.map(Seq(_))
-    case Seq(x, xs @ _ *) => x.mergeWith(xs: _*)
+    case Seq()           => empty
+    case Seq(x)          => x.map(Seq(_))
+    case Seq(x, xs @ _*) => x.mergeWith(xs: _*)
   }
 
   // primitive node implementations

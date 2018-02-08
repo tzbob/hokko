@@ -58,10 +58,6 @@ trait IBehavior[+A, +DeltaA] extends Primitive[A] {
   }
 
   def toCBehavior[AA >: A]: CBehavior[AA] = toDBehavior.toCBehavior
-
-  def resetState[AA >: A](resetter: Event[AA]): IBehavior[AA, DeltaA] =
-    IBehavior.reset(resetter, this)
-
 }
 
 object IBehavior
@@ -83,7 +79,7 @@ object IBehavior
   private[core] def folded[A, DeltaA](foldee: Event[DeltaA],
                                       init: A,
                                       f: (A, DeltaA) => A) = {
-    val foldNode = FoldNode(foldee, init, f)
+    val foldNode = new FoldNode(foldee, init, f)
     new IBehavior[A, DeltaA] {
       val initial               = init
       val node: Pull[A]         = foldNode
@@ -92,12 +88,12 @@ object IBehavior
     }
   }
 
-  private case class FoldNode[A, DeltaA](
+  private class FoldNode[A, DeltaA](
       ev: Event[DeltaA],
       init: A,
       f: (A, DeltaA) => A
   ) extends DBehavior.PullStatePush[A] {
-    val dependencies = List(ev.node)
+    val dependencies: List[Node[_]] = List(ev.node)
     def pulse(context: TickContext): Option[A] = {
       val evPulse = context.getPulse(ev.node)
       evPulse.map { pulse =>
@@ -109,27 +105,30 @@ object IBehavior
       Thunk.eager(c.getPulse(this).orElse(c.getState(this)).getOrElse(init))
   }
 
-  private def reset[A, DeltaA](ev: Event[A], ib: IBehavior[A, DeltaA]) =
+  private[core] def resetFolded[A, DeltaA](foldee: Event[DeltaA],
+                                           resetter: Event[A],
+                                           init: A,
+                                           f: (A, DeltaA) => A) = {
+    val foldNode = ResetFoldNode(foldee, resetter, init, f)
     new IBehavior[A, DeltaA] {
-      val initial: A                  = ib.initial
-      override private[core] val node = new ResetNode(ev, ib)
-      def changes                     = ib.changes
-      def deltas                      = ib.deltas
+      val initial               = init
+      val node: Pull[A]         = foldNode
+      val changes: Event[A]     = Event.fromNode(foldNode)
+      val deltas: Event[DeltaA] = foldee
     }
-
-  private case class ResetNode[A, DeltaA](
-      ev: Event[A],
-      ib: IBehavior[A, DeltaA]
-  ) extends DBehavior.PullStatePush[A] {
-    val dependencies = List(ev.node, ib.node)
-
-    override def state(context: TickContext): Option[A] =
-      context.getPulse(ev.node)
-
-    def pulse(context: TickContext): Option[A] =
-      context.getPulse(ib.changes.node)
-
-    def thunk(c: TickContext): Thunk[A] =
-      c.getPulse(ev.node).map(Thunk.eager).orElse(c.getThunk(ib.node)).get
   }
+
+  private case class ResetFoldNode[A, DeltaA](
+      ev: Event[DeltaA],
+      resetter: Event[A],
+      init: A,
+      f: (A, DeltaA) => A
+  ) extends FoldNode[A, DeltaA](ev, init, f) {
+    override val dependencies = List(ev.node, resetter.node)
+
+    // If the resetter produces a pulse, reset the state to that pulse
+    override def state(context: TickContext): Option[A] =
+      context.getPulse(resetter.node).orElse(super.state(context))
+  }
+
 }
