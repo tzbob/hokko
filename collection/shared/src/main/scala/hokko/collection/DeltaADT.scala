@@ -6,8 +6,7 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.{
   GenTraversable,
   SeqLike,
-  TraversableLike,
-  immutable => imm
+  TraversableLike
 }
 
 object Delta {

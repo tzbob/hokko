@@ -1,5 +1,7 @@
 package hokko.core
 
+import cats.effect.IO
+
 sealed trait Node[+A] {
   val dependencies: List[Node[_]]
 
@@ -29,6 +31,16 @@ trait Push[+A] extends Node[A] {
     val pulsedContext =
       pulse(targetContext).map(targetContext.addPulse(this, _))
     pulsedContext.orElse(supersContext)
+  }
+}
+
+trait AsyncIO[+A] extends Node[Nothing] {
+  def io(context: TickContext): Option[(Push[A], IO[A])]
+
+  override def updateContext(context: TickContext): Option[TickContext] = {
+    io(context).map {
+      case (push, io) => context.addIO(push, io)
+    }
   }
 }
 

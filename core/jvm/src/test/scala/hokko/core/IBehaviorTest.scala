@@ -35,6 +35,33 @@ class IBehaviorTest extends FunSuite with FRPSuite with Checkers {
   // FIXME
   test("IBehaviors incrementally map 2") {}
 
+  test("IBehaviors can be turned into continuous behaviors") {
+    var counter = 0
+
+    val src = Event.source[Int]
+    val count: IBehavior[Int, Int] = src.fold(0) { (a, b) =>
+      counter += 1
+      a + b
+    }
+    val countCB      = count.toCBehavior
+    val countChanges = count.changes
+
+    check { (ints: List[Int]) =>
+      counter = 0
+      val occs = mkOccurrencesWithDependencies(src)(countCB) {
+        implicit engine =>
+          fireAll(src, ints)
+          engine.askCurrentValues()(countCB).get == ints.sum
+
+          engine.askCurrentValues()(countCB).get == ints.sum
+      }
+
+      val isFoldExecutedOnce = counter == ints.size
+      occs == ints && isFoldExecutedOnce
+    }
+
+  }
+
   test("IBehaviors can be reset without producing pulses") {
     val init = 5
 
@@ -68,7 +95,6 @@ class IBehaviorTest extends FunSuite with FRPSuite with Checkers {
 
             isValueReset && doesFoldStartFromReset
         }
-
 
       val changes = ints.scan(initAfterReset)(_ + _).drop(1)
       occs === changes

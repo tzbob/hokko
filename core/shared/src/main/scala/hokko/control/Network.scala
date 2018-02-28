@@ -1,10 +1,7 @@
 package hokko.control
 
-import cats.data.Reader
 import hokko.core.Engine.Subscription
 import hokko.core.{Engine, Event}
-
-import scala.annotation.unchecked.uncheckedVariance
 
 case class Network[+Result](
     engine: Engine,

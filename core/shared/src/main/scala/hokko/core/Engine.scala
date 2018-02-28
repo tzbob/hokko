@@ -1,6 +1,9 @@
 package hokko.core
 
+import cats.effect.IO
+
 import scala.annotation.tailrec
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.existentials
 
 class Engine private (exitNodes: Seq[Node[_]]) {
@@ -13,32 +16,47 @@ class Engine private (exitNodes: Seq[Node[_]]) {
   private val nodeToDescendants = Engine.buildDescendants(exitNodes)
   private val orderedNodes      = Engine.sortedNodes(exitNodes, nodeToDescendants)
 
-  def fire(pulses: Seq[(EventSource[A], A) forSome { type A }]): Unit =
+  def fire(pulses: Seq[(EventSource[A], A) forSome { type A }]): FireResult =
+    fireNodes(pulses.map {
+      case (src, a) => (src.node, a)
+    })
+
+  private[this] def fireNodes(pulses: Seq[(Push[A], A) forSome { type A }]): FireResult =
     this.synchronized {
       val startContext = pulses.foldLeft(currentContext()) {
         // add initial pulses to the fire targets
-        case (acc, (src, x)) => acc.addPulse(src.node, x)
+        case (acc, (node, x)) => acc.addPulse(node, x)
       }
-      val endContext = propagate(startContext)
+
+      val endContext = propagationResults(startContext)
+      memoTable = endContext.memoTable
+
       handlers.foreach { handler =>
         handler(new Pulses(this, endContext))
       }
+
+      val ioPropagations: Seq[IO[Engine.FireResult]] =
+        endContext.asyncIOs.map {
+          case (push, io) =>
+            for {
+              a <- io
+            } yield fireNodes(Seq(push -> a))
+        }
+
+      val futurePropagations = ioPropagations.map { io =>
+        io.unsafeToFuture()
+      }
+
+      FireResult(endContext, futurePropagations)
     }
 
-  private[this] def propagate(startContext: TickContext): TickContext = {
-    val endContext = propagationResults(startContext)
-    memoTable = endContext.memoTable
-    endContext
-  }
-
-  private[this] def propagationResults(
-      startContext: TickContext): TickContext =
+  private[this] def propagationResults(startContext: TickContext): TickContext =
     orderedNodes.foldLeft(startContext) { (context, node) =>
       node.updateContext(context).getOrElse(context)
     }
 
   def askCurrentValues(): Values =
-    new Values(this, propagate(currentContext()))
+    new Values(this, propagationResults(currentContext()))
 
   def subscribeForPulses(handler: Pulses => Unit): Subscription = {
     handlers += handler
@@ -47,6 +65,9 @@ class Engine private (exitNodes: Seq[Node[_]]) {
 }
 
 object Engine {
+  case class FireResult(context: TickContext,
+                        futurePropagations: Seq[Future[FireResult]])
+
   class Subscription private[Engine] (engine: Engine, handler: Pulses => Unit) {
     def cancel(): Unit = engine.handlers -= handler
   }
@@ -89,8 +110,7 @@ object Engine {
       start: Seq[Node[_]],
       descendants: Node[_] => Set[Node[_]]): List[Node[_]] = {
     @tailrec
-    def allNodes(todo: List[Node[_]],
-                 accumulator: Set[Node[_]]): Set[Node[_]] =
+    def allNodes(todo: List[Node[_]], accumulator: Set[Node[_]]): Set[Node[_]] =
       todo match {
         case Nil     => accumulator
         case x :: xs => allNodes(xs ++ x.dependencies, accumulator + x)

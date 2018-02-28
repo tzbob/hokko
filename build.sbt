@@ -3,8 +3,8 @@ resolvers += "Sonatype OSS Snapshots" at
 
 organization in ThisBuild := "be.tzbob"
 scalaVersion in ThisBuild := "2.12.4"
-crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.1")
-version in ThisBuild := "0.4.5-SNAPSHOT"
+crossScalaVersions in ThisBuild := Seq("2.11.9", "2.12.4")
+version in ThisBuild := "0.4.8-SNAPSHOT"
 isSnapshot in ThisBuild := true
 
 scalacOptions in ThisBuild ++= Seq(
@@ -19,7 +19,8 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-value-discard",
   "-Xfuture",
   "-language:higherKinds",
-  "-language:implicitConversions"
+  "-language:implicitConversions",
+  "-Ypartial-unification"
 )
 
 lazy val root = project
@@ -57,9 +58,11 @@ lazy val hokko = crossProject
   .settings(publishSettings: _*)
   .settings(
     name := "hokko",
+    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"),
     libraryDependencies ++= Seq(
-      "org.typelevel" %%% "cats"      % "0.9.0",
-      "org.scalatest" %%% "scalatest" % "3.0.1" % "test"
+      "org.typelevel" %%% "cats-core"   % "1.0.1",
+      "org.typelevel" %%% "cats-effect" % "0.9",
+      "org.scalatest" %%% "scalatest"   % "3.0.1" % "test"
     )
   )
   .jvmSettings(

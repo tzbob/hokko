@@ -17,7 +17,7 @@ class DescriptionTest extends FunSuite {
     assert(network.now() === 20)
   }
 
-  test("Descriptions can be used to subscribe on evens") {
+  test("Descriptions can be used to subscribe on events") {
     val src = Event.source[Int]
 
     val network = Description

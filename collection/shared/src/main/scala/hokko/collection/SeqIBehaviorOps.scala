@@ -4,8 +4,8 @@ import cats.data.Ior
 import hokko.collection.ICollection.ICollection
 import hokko.core.{Event, IBehavior}
 
-import scala.collection.{GenSeq, SeqLike}
-import scala.collection.generic.{CanBuildFrom, IsSeqLike}
+import scala.collection.SeqLike
+import scala.collection.generic.CanBuildFrom
 
 trait SeqIBehaviorOps {
   implicit class SeqIBehavior[A0, Repr[A0] <: SeqLike[A0, Repr[A0]]](
