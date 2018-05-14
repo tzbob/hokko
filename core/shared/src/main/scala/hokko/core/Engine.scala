@@ -3,7 +3,7 @@ package hokko.core
 import cats.effect.IO
 
 import scala.annotation.tailrec
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.language.existentials
 
 class Engine private (exitNodes: Seq[Node[_]]) {
@@ -32,7 +32,7 @@ class Engine private (exitNodes: Seq[Node[_]]) {
       memoTable = endContext.memoTable
 
       handlers.foreach { handler =>
-        handler(new Pulses(this, endContext))
+        handler(new Pulses(endContext))
       }
 
       val ioPropagations: Seq[IO[Engine.FireResult]] =
@@ -56,7 +56,7 @@ class Engine private (exitNodes: Seq[Node[_]]) {
     }
 
   def askCurrentValues(): Values =
-    new Values(this, propagationResults(currentContext()))
+    new Values(propagationResults(currentContext()))
 
   def subscribeForPulses(handler: Pulses => Unit): Subscription = {
     handlers += handler
@@ -66,18 +66,21 @@ class Engine private (exitNodes: Seq[Node[_]]) {
 
 object Engine {
   case class FireResult(context: TickContext,
-                        futurePropagations: Seq[Future[FireResult]])
+                        futurePropagations: Seq[Future[FireResult]]) {
+    val values: Values = new Values(context)
+    val Pulses: Pulses = new Pulses(context)
+  }
 
   class Subscription private[Engine] (engine: Engine, handler: Pulses => Unit) {
     def cancel(): Unit = engine.handlers -= handler
   }
 
-  class Values private[Engine] (engine: Engine, context: TickContext) {
+  class Values private[Engine] (context: TickContext) {
     def apply[A](beh: CBehavior[A]): Option[A] =
       context.getThunk(beh.node).map(_.force)
   }
 
-  class Pulses private[Engine] (engine: Engine, context: TickContext) {
+  class Pulses private[Engine] (context: TickContext) {
     def apply[A](ev: Event[A]): Option[A] =
       context.getPulse(ev.node)
   }
