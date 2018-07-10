@@ -13,15 +13,15 @@ class Engine private (exitNodes: Seq[Node[_]]) {
   private[this] var memoTable        = HMap.empty[State, cats.Id]
   private[this] def currentContext() = TickContext.fromMemoTable(memoTable)
 
-  private val nodeToDescendants = Engine.buildDescendants(exitNodes)
-  private val orderedNodes      = Engine.sortedNodes(exitNodes, nodeToDescendants)
+  private val orderedNodes = Engine.sortedNodes(exitNodes)
 
   def fire(pulses: Seq[(EventSource[A], A) forSome { type A }]): FireResult =
     fireNodes(pulses.map {
       case (src, a) => (src.node, a)
     })
 
-  private[this] def fireNodes(pulses: Seq[(Push[A], A) forSome { type A }]): FireResult =
+  private[this] def fireNodes(
+      pulses: Seq[(Push[A], A) forSome { type A }]): FireResult =
     this.synchronized {
       val startContext = pulses.foldLeft(currentContext()) {
         // add initial pulses to the fire targets
@@ -91,32 +91,14 @@ object Engine {
   def compile(primitives: Primitive[_]*): Engine =
     new Engine(primitives.map(_.node))
 
-  private[core] def buildDescendants(
-      nodes: Seq[Node[_]]): Map[Node[_], Set[Node[_]]] = {
-    @tailrec
-    def buildDescendants(
-        nodes: List[Node[_]],
-        acc: Map[Node[_], Set[Node[_]]]): Map[Node[_], Set[Node[_]]] =
-      nodes match {
-        case Nil => acc
-        case node :: ns =>
-          val newAcc = node.dependencies.foldLeft(acc) { (map, dependency) =>
-            val newDescendants = map(dependency) + node
-            map + (dependency -> newDescendants)
-          }
-          buildDescendants(node.dependencies ++ ns, newAcc)
-      }
-    buildDescendants(nodes.toList, Map.empty.withDefaultValue(Set.empty))
-  }
-
-  private[core] def sortedNodes(
-      start: Seq[Node[_]],
-      descendants: Node[_] => Set[Node[_]]): List[Node[_]] = {
+  private[core] def sortedNodes(start: Seq[Node[_]]): List[Node[_]] = {
     @tailrec
     def allNodes(todo: List[Node[_]], accumulator: Set[Node[_]]): Set[Node[_]] =
       todo match {
-        case Nil     => accumulator
-        case x :: xs => allNodes(xs ++ x.dependencies, accumulator + x)
+        case Nil => accumulator
+        case x :: xs =>
+          val rest = if (accumulator contains x) xs else xs ++ x.dependencies
+          allNodes(rest, accumulator + x)
       }
     val nodes = allNodes(start.toList, Set.empty)
     nodes.toList.sortBy(_.level)

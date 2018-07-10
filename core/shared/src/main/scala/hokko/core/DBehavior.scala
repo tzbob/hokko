@@ -24,6 +24,7 @@ trait DBehavior[A] extends Primitive[A] {
     val diffs = memorizedDeltas.changes.collect(_._1)
     diffs.fold(init)(patch)
   }
+
 }
 
 object DBehavior
@@ -48,12 +49,42 @@ object DBehavior
   def ap[A, B](ff: DBehavior[A => B])(fa: DBehavior[A]): DBehavior[B] =
     fromNode(ff.init(fa.init), ReverseApply(fa, ff))
 
+  def delayed[A](target: => DBehavior[A], initial: A): DBehavior[A] = {
+
+    val statePush = new PushState[A] {
+      // level is normal, updates happen after 'pull'
+      lazy val dependencies = List(target.changes.node)
+
+      def pulse(context: TickContext): Option[A] =
+        context.getPulse(target.changes.node)
+    }
+
+    val pull = new Pull[A] {
+      // level is early so early state is pulled
+      override val delayed  = true
+      lazy val dependencies = List(target.node, statePush)
+
+      // retrieve previous state
+      def thunk(context: TickContext): Thunk[A] =
+        Thunk.eager(context.getState(statePush).getOrElse(initial))
+    }
+
+    fromNode(initial, statePush, pull)
+  }
+
   // Convenience traits stacked in the right order
   private[core] trait PushState[A] extends Push[A] with State[A] {
     def state(context: TickContext): Option[A] =
       context.getPulse(this)
   }
   private[core] trait PullStatePush[A] extends PushState[A] with Pull[A]
+
+  private def fromNode[A](initial: A, push: Push[A], pull: Pull[A]) =
+    new DBehavior[A] {
+      val init              = initial
+      val node              = pull
+      val changes: Event[A] = Event.fromNode(push)
+    }
 
   private def fromNode[A](initial: A, n: Push[A] with Pull[A]) =
     new DBehavior[A] {
@@ -82,7 +113,7 @@ object DBehavior
 
     def thunk(c: TickContext): Thunk[B] =
       // we are sure that apParam and apFun already placed their thunks
-      Thunk.eager(c.getPulse(this).orElse(c.getState(this)).get)
+      Thunk.eager(c.getState(this).get)
   }
 
 }

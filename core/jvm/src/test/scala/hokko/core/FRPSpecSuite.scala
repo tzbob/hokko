@@ -35,7 +35,7 @@ trait FRPSuite {
 
   def fireAll[A](src: EventSource[A], pulses: List[A])(
       implicit engine: Engine) =
-    pulses.foreach(i => engine.fire(List(src -> i)))
+    pulses.map(i => engine.fire(List(src -> i)))
 
   def mkOccurrencesWithPulses[A, B](
       target: Event[B])(src: EventSource[A], pulses: List[A]): List[B] =

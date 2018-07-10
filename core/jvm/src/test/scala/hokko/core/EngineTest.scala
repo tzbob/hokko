@@ -23,47 +23,23 @@ class EngineTest extends FunSpec with Matchers {
 
   lazy val n1a = N(4)
   lazy val n2a = N(5, List(n1a))
-  lazy val allDescendants: Node[_] => Set[Node[_]] = { n =>
-    if (n == n2a) Set(n1a)
-    else simpleDescendants(n)
-  }
 
   describe("An Engine") {
-    describe("building descendants") {
-      it("should always return a total map") {
-        val descendants = Engine.buildDescendants(List(n1))
-        assert(descendants(n1) === Set.empty)
-      }
-
-      it("should build descendants from a simple tree") {
-        val descendants = Engine.buildDescendants(List(simpleTree))
-        assert(descendants(n1).head === simpleTree)
-        assert(descendants(n2).head === simpleTree)
-      }
-
-      it("should build descendants from multiple trees") {
-        val descendants = Engine.buildDescendants(List(simpleTree, n2a))
-        assert(descendants(n1).head === simpleTree)
-        assert(descendants(n2).head === simpleTree)
-        assert(descendants(n1a).head === n2a)
-      }
-    }
-
     describe("sorting all nodes") {
       it("should return the singleton list for a leaf") {
-        val bfsList = Engine.sortedNodes(List(n1), _ => Set.empty)
+        val bfsList = Engine.sortedNodes(List(n1))
         assert(bfsList === List(n1))
       }
 
       it("should return an ordered list for a tree") {
-        val bfsList = Engine.sortedNodes(List(simpleTree), simpleDescendants)
+        val bfsList = Engine.sortedNodes(List(simpleTree))
         val sti     = bfsList.indexOf(simpleTree)
         assert(sti > bfsList.indexOf(n1))
         assert(sti > bfsList.indexOf(n2))
       }
 
       it("should handle multiple trees") {
-        val bfsList   = Engine.sortedNodes(List(simpleTree, n2a), allDescendants)
+        val bfsList   = Engine.sortedNodes(List(simpleTree, n2a))
         val srcNodes  = List(n1, n2, n1a)
         val exitNodes = List(simpleTree, n2a)
 

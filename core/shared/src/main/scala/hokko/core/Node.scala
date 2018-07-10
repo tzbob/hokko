@@ -5,9 +5,11 @@ import cats.effect.IO
 sealed trait Node[+A] {
   val dependencies: List[Node[_]]
 
+  val delayed: Boolean = false
+
   // lazy to give implementations the chance to fill in dependencies
   lazy val level: Int =
-    if (dependencies.isEmpty) 0
+    if (delayed || dependencies.isEmpty) 0
     else dependencies.map(_.level).max + 1
 
   def updateContext(context: TickContext): Option[TickContext] = None
