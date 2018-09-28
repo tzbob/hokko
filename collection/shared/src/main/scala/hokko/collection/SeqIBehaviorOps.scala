@@ -70,15 +70,16 @@ trait SeqIBehaviorOps {
             }
         }
 
-      val newDeltas = ib.snapshotWith(ib.deltas) { (state, delta) =>
-        (delta.left, state._2) match {
-          // Either the left is defined (an old delta)
-          // or the right is defined (a new Updated)
-          case (Some(oldDelta), other) =>
-            other.map(Delta.combineDelta(oldDelta, _)).getOrElse(oldDelta)
-          case (None, other) => other.get
+      val newDeltas = ib.snapshotWith(ib.deltas) {
+          (state, delta) =>
+            (delta.left, state._2) match {
+              // Either the left is defined (an old delta)
+              // or the right is defined (a new Updated)
+              case (Some(oldDelta), other) =>
+                other.map(Delta.combineDelta(oldDelta, _)).getOrElse(oldDelta)
+              case (None, other) => other.get
+            }
         }
-      }
 
       Delta.foldApply(rep.initial, newDeltas)
     }

@@ -1,19 +1,24 @@
 package hokko.core
 
 import cats.effect.IO
+import slogging.LazyLogging
 
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.language.existentials
 
-class Engine private (exitNodes: Seq[Node[_]]) {
+class Engine private (exitNodes: Seq[Node[_]]) extends LazyLogging {
   import Engine._
 
   private var handlers               = Set.empty[Pulses => Unit]
   private[this] var memoTable        = HMap.empty[State, cats.Id]
   private[this] def currentContext() = TickContext.fromMemoTable(memoTable)
 
-  private val orderedNodes = Engine.sortedNodes(exitNodes)
+  private val orderedNodes = {
+    val nodes = Engine.sortedNodes(exitNodes)
+    logger.trace(s"Sorted nodes $nodes")
+    nodes
+  }
 
   def fire(pulses: Seq[(EventSource[A], A) forSome { type A }]): FireResult =
     fireNodes(pulses.map {
@@ -23,6 +28,7 @@ class Engine private (exitNodes: Seq[Node[_]]) {
   private[this] def fireNodes(
       pulses: Seq[(Push[A], A) forSome { type A }]): FireResult =
     this.synchronized {
+      logger.trace(s"Firing pulses $pulses")
       val startContext = pulses.foldLeft(currentContext()) {
         // add initial pulses to the fire targets
         case (acc, (node, x)) => acc.addPulse(node, x)
@@ -31,6 +37,7 @@ class Engine private (exitNodes: Seq[Node[_]]) {
       val endContext = propagationResults(startContext)
       memoTable = endContext.memoTable
 
+      logger.trace(s"Pulses callback for ${endContext.pulses.underlying}")
       handlers.foreach { handler =>
         handler(new Pulses(endContext))
       }

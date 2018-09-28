@@ -84,4 +84,29 @@ class EventTest extends FunSuite with FRPSuite with Checkers {
       }
     }
   }
+
+  test("BUG: Events should not fire when engine is fired empty") {
+    var counter = 0
+    val src = Event.source[Int]
+    val count: IBehavior[Int, Int] = src.fold(0) { (a, b) =>
+      counter += 1
+      a + b
+    }
+    val countCB      = count.toCBehavior
+    val countChanges = count.changes
+
+    check { (ints: List[Int]) =>
+      counter = 0
+      val occs = mkOccurrencesWithDependencies(src)(countCB) {
+        implicit engine =>
+          engine.fire(Seq.empty)
+          fireAll(src, ints)
+          engine.fire(Seq.empty)
+      }
+
+      val isFoldExecutedOnce = counter == ints.size
+      occs == ints && isFoldExecutedOnce
+    }
+
+  }
 }

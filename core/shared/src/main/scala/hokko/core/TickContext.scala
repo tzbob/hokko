@@ -3,9 +3,9 @@ package hokko.core
 import cats.effect.IO
 
 class TickContext private (
-    pulses: HMap[Push, cats.Id],
+    val pulses: HMap[Push, cats.Id],
     val memoTable: HMap[State, cats.Id],
-    thunks: HMap[Pull, Thunk],
+    val thunks: HMap[Pull, Thunk],
     val asyncIOs: HMap[Push, IO[?]]
 ) {
   def addPulse[A](n: Push[A], pulse: A): TickContext =

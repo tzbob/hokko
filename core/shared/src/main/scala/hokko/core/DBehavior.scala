@@ -3,6 +3,7 @@ package hokko.core
 import cats.Applicative
 import cats.syntax.{ApplicativeSyntax, ApplySyntax, FunctorSyntax}
 import hokko.syntax.SnapshottableSyntax
+import slogging.LazyLogging
 
 trait DBehavior[A] extends Primitive[A] {
   override private[core] val node: Pull[A]
@@ -31,7 +32,8 @@ object DBehavior
     extends ApplicativeSyntax
     with ApplySyntax
     with FunctorSyntax
-    with SnapshottableSyntax[Event, DBehavior] {
+    with SnapshottableSyntax[Event, DBehavior]
+    with LazyLogging {
   implicit val hokkoDBehaviorInstances
     : tc.Snapshottable[DBehavior, Event] with Applicative[DBehavior] =
     new tc.Snapshottable[DBehavior, Event] with Applicative[DBehavior] {
@@ -49,27 +51,26 @@ object DBehavior
   def ap[A, B](ff: DBehavior[A => B])(fa: DBehavior[A]): DBehavior[B] =
     fromNode(ff.init(fa.init), ReverseApply(fa, ff))
 
-  def delayed[A](target: => DBehavior[A], initial: A): DBehavior[A] = {
+  def delayed[A](target: => DBehavior[A]): CBehavior[A] = {
+    val state = new State[A] {
+      lazy val dependencies: List[Node[_]] = List(target.changes.node)
 
-    val statePush = new PushState[A] {
-      // level is normal, updates happen after 'pull'
-      lazy val dependencies = List(target.changes.node)
-
-      def pulse(context: TickContext): Option[A] =
-        context.getPulse(target.changes.node)
+      def state(context: TickContext): Option[A] = {
+        context.getPulse(target.changes().node)
+      }
     }
 
     val pull = new Pull[A] {
       // level is early so early state is pulled
       override val delayed  = true
-      lazy val dependencies = List(target.node, statePush)
+      lazy val dependencies = List(target.node, state)
 
       // retrieve previous state
       def thunk(context: TickContext): Thunk[A] =
-        Thunk.eager(context.getState(statePush).getOrElse(initial))
+        Thunk.eager(context.getState(state).getOrElse(target.init))
     }
 
-    fromNode(initial, statePush, pull)
+    new CBehavior[A] { override private[core] val node = pull }
   }
 
   // Convenience traits stacked in the right order
@@ -105,15 +106,31 @@ object DBehavior
       apFun: DBehavior[A => B]
   ) extends PullStatePush[B] {
     val dependencies = List(apParam.node, apFun.node)
-    def pulse(context: TickContext): Option[B] =
-      for {
-        paramThunk <- context.getThunk(apParam.node)
-        funThunk   <- context.getThunk(apFun.node)
-      } yield funThunk.force(paramThunk.force)
+
+    def pulse(context: TickContext): Option[B] = {
+      val paramPulse = context.getPulse(apParam.changes().node)
+      val funPulse   = context.getPulse(apFun.changes().node)
+
+      val paramFunOpt: Option[(A, A => B)] = (paramPulse, funPulse) match {
+        case (Some(param), Some(fun)) => Some((param, fun))
+        case (None, Some(fun)) =>
+          val optParamThunk = context.getThunk(apParam.node)
+          optParamThunk.map(th => th.force -> fun)
+        case (Some(param), None) =>
+          val optFunThunk = context.getThunk(apFun.node)
+          optFunThunk.map(th => param -> th.force)
+        case (None, None) =>
+          logger.trace(s"No pulses found for $apParam and $apFun")
+          None
+      }
+
+      paramFunOpt.map {
+        case (param, fun) => fun(param)
+      }
+    }
 
     def thunk(c: TickContext): Thunk[B] =
-      // we are sure that apParam and apFun already placed their thunks
-      Thunk.eager(c.getState(this).get)
+      Thunk.eager(c.getState(this).getOrElse(apFun.init(apParam.init)))
   }
 
 }

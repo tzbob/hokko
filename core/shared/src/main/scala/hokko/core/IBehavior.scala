@@ -60,13 +60,16 @@ trait IBehavior[+A, +DeltaA] extends Primitive[A] {
   def toCBehavior[AA >: A]: CBehavior[AA] = toDBehavior.toCBehavior
 }
 
-object IBehavior
-    extends SnapshottableSyntax[Event, ({ type l[A] = IBehavior[A, Any] })#l] {
-  type IBehaviorA[A] = IBehavior[A, _]
+object IBehavior {
+  implicit def syntaxSnapshottable[A, DA](b: IBehavior[A, DA])(
+      implicit ev: Snapshottable[IBehavior[?, DA], Event])
+    : SnapshottableOps[IBehavior[?, DA], Event, A] =
+    new SnapshottableOps[IBehavior[?, DA], Event, A](b)
 
-  implicit val hokkoDBehaviorInstances: tc.Snapshottable[IBehaviorA, Event] =
-    new Snapshottable[IBehaviorA, Event] {
-      override def snapshotWith[A, B, C](b: IBehavior[A, Any], ev: Event[B])(
+  implicit def hokkoIBehaviorInstances[D]
+    : tc.Snapshottable[IBehavior[?, D], Event] =
+    new Snapshottable[IBehavior[?, D], Event] {
+      def snapshotWith[A, B, C](b: IBehavior[A, D], ev: Event[B])(
           f: (A, B) => C): Event[C] =
         Event.snapshotted(ev.map(x => (bv: A) => f(bv, x)), b)
     }

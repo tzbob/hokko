@@ -62,7 +62,8 @@ lazy val hokko = crossProject
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-core"   % "1.0.1",
       "org.typelevel" %%% "cats-effect" % "0.9",
-      "org.scalatest" %%% "scalatest"   % "3.0.1" % "test"
+      "org.scalatest" %%% "scalatest"   % "3.0.1" % "test",
+      "biz.enef"      %%% "slogging"    % "0.5.3"
     )
   )
   .jvmSettings(

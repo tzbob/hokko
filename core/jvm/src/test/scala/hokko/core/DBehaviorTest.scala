@@ -44,6 +44,19 @@ class DBehaviorTest extends FunSuite with FRPSuite with Checkers {
     }
   }
 
+  test("DBehaviors can be applied but may not misfire") {
+    val bPoorMansDouble = intDBehavior.map { (i: Int) => (int: Int) =>
+      int + i
+    }
+    val bApplied = bPoorMansDouble ap intDBehavior
+    check { (ints: List[Int]) =>
+      val occs = mkOccurrences(bApplied.changes) { implicit engine =>
+        fireAll(Event.source[Int], ints)
+      }
+      occs == List()
+    }
+  }
+
   test("DBehaviors can be diffed into IBehaviors") {
     val ib = intDBehavior.toIBehavior(_ - _)(_ + _)
     check { (ints: List[Int]) =>
@@ -55,40 +68,63 @@ class DBehaviorTest extends FunSuite with FRPSuite with Checkers {
     }
   }
 
-  test("DBehaviors can be defined recursively through delay with objects") {
-    object Test {
-      val delayedInts: DBehavior[Int] = DBehavior.delayed(player, 100)
-      val player                      = intDBehavior.map2(delayedInts)(_ + _)
-    }
-
-    val player = Test.player
-
-    def checkForList(ints: List[Int]) = ints.foldLeft(100) { (acc, int) =>
-      acc + int
-    }
+  test("DBehaviors can be snapshot") {
+    val b1      = DBehavior.constant(5)
+    val b2      = DBehavior.constant(3)
+    val src     = Event.source[Int]
+    val snapped = b1.map2(b2)(_ + _).snapshotWith(src)(_ + _)
 
     check { (ints: List[Int]) =>
-      val occs = mkOccurrences(player.changes) { implicit engine =>
-        val preOccValues = engine.askCurrentValues()
-        assert(
-          preOccValues(player.toCBehavior).get === checkForList(List.empty))
-        assert(player.init === checkForList(List.empty))
-
-        val results = fireAll(src, ints)
-        results.lastOption.foreach { last =>
-          assert(last.values(player.toCBehavior).get === checkForList(ints))
+      val occs = mkOccurrences(snapped) { implicit engine =>
+        ints.foreach { i =>
+          engine.fire(List(src -> i))
         }
-
-        val currentValues = engine.askCurrentValues()
-
-        val checkLast = checkForList(ints :+ ints.lastOption.getOrElse(0))
-        assert(currentValues(player.toCBehavior).get === checkLast)
       }
+      occs == ints.map(_ + 5 + 3)
+    }
+  }
 
-      val correctOccs =
-        ints.inits.filterNot(_.isEmpty).toList.reverse.map(checkForList)
-      occs === correctOccs
+  test("DBehaviors can be delayed") {
+    val delayed = DBehavior.delayed(intDBehavior)
+
+    check { (ints: List[Int]) =>
+      implicit val engine = Engine.compile(delayed)
+      fireAll(src, ints)
+      val currentValues = engine.askCurrentValues()
+      val allAsserted = ints.lastOption.map { last =>
+        assert(currentValues(delayed).get === last)
+      }
+      true
     }
 
   }
+
+//  test("DBehaviors can be defined recursively through delay with objects") {
+//    object Test {
+//      val delayedInts: CBehavior[Int] = DBehavior.delayed(player, 100)
+//      val delayedDB = delayedInts
+//        .sampledBy(Event.empty)
+//        .hold(0)
+//        .toDBehavior
+//      val player = intDBehavior.map2(delayedDB)(_ + _)
+//    }
+//
+//    val player = Test.player
+//
+//    def checkForList(ints: List[Int]) = ints.foldLeft(100)(_ + _)
+//
+//    check { (ints: List[Int]) =>
+//      val occs = mkOccurrences(player.changes) { implicit engine =>
+//        // after propagation the value should be computed with the last
+//        // result from propagation (that is, delayed and not delayed are equal)
+//        val checkLast = checkForList(ints)
+//        val value     = currentValues(Test.delayedInts).get
+//        assert(value === checkLast)
+//      }
+//
+//      val correctOccs =
+//        ints.inits.filterNot(_.isEmpty).toList.reverse.map(checkForList)
+//      occs === correctOccs
+//    }
+//  }
 }

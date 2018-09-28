@@ -3,7 +3,7 @@ package hokko.core
 import scala.language.higherKinds
 import scala.language.existentials
 
-class HMap[Key[_], Result[_]](underlying: Map[Any, Any] = Map.empty) {
+class HMap[Key[_], Result[_]](val underlying: Map[Any, Any] = Map.empty) {
   def get[A](k: Key[A]): Option[Result[A]] =
     underlying.get(k).asInstanceOf[Option[Result[A]]]
   def +[A](kv: (Key[A], Result[A])): HMap[Key, Result] =

@@ -67,8 +67,7 @@ class IBehaviorTest extends FunSuite with FRPSuite with Checkers {
 
     val source   = Event.source[Int]
     val resetter = Event.source[Int]
-
-    val reset = source.resetFold(resetter)(init)(_ + _)
+    val reset    = source.resetFold(resetter)(init)(_ + _)
 
     check { (ints: List[Int]) =>
       val cBehavior = reset.toCBehavior
