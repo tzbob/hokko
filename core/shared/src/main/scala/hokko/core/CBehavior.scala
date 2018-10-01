@@ -2,10 +2,13 @@ package hokko.core
 
 import cats.syntax.{ApplicativeSyntax, ApplySyntax, FunctorSyntax}
 import cats.{Applicative, Apply, Functor}
-import hokko.syntax.SnapshottableSyntax
+import hokko.core.tc.Snapshottable
+import hokko.syntax.{SnapshottableOps, SnapshottableSyntax}
 
 trait CBehavior[+A] extends Primitive[A] {
   override private[core] val node: Pull[A]
+
+  val initial: Thunk[A]
 }
 
 class CBehaviorSource[A](default: A) extends CBehavior[A] {
@@ -23,6 +26,8 @@ class CBehaviorSource[A](default: A) extends CBehavior[A] {
       }
       .getOrElse(default)
   }.node
+
+  val initial: Thunk[A] = Thunk.eager(default)
 }
 
 object CBehaviorSource {
@@ -39,7 +44,16 @@ object CBehavior
     extends ApplicativeSyntax
     with ApplySyntax
     with FunctorSyntax
-    with SnapshottableSyntax[Event, CBehavior] {
+    with SnapshottableSyntax[CBehavior] {
+  implicit val hokkoCBehaviorSnapshotByDBehavior
+    : tc.Snapshottable[CBehavior, DBehavior] =
+    new Snapshottable[CBehavior, DBehavior] {
+      def snapshotWith[A, B, C](b: CBehavior[A], ev: DBehavior[B])(
+          f: (A, B) => C): DBehavior[C] = {
+        lazy val node = DBehavior.Snapshot(b, ev, f)
+        DBehavior.fromNode(b.initial.map(a => f(a, ev.init)).force, node)
+      }
+    }
 
   implicit val hokkoCBehaviorInstances
     : tc.Snapshottable[CBehavior, Event] with Applicative[CBehavior] =
@@ -59,6 +73,7 @@ object CBehavior
       override def thunk(context: TickContext): Thunk[A] = Thunk.eager(x)
       override val dependencies: List[Node[_]]           = List.empty
     }
+    val initial: Thunk[A] = Thunk.eager(x)
   }
 
   def ap[A, B](ff: CBehavior[A => B])(fa: CBehavior[A]): CBehavior[B] =
@@ -75,6 +90,10 @@ object CBehavior
 
         override val dependencies: List[Node[_]] = List(fa.node, ff.node)
       }
+      val initial: Thunk[B] = for {
+        iff <- ff.initial
+        ifa <- fa.initial
+      } yield iff(ifa)
     }
 
   def fromPoll[A](f: () => A): CBehavior[A] = new CBehavior[A] {
@@ -82,6 +101,7 @@ object CBehavior
       val dependencies                = List.empty[Node[_]]
       def thunk(context: TickContext) = Thunk(f())
     }
+    val initial: Thunk[A] = Thunk(f())
   }
 
   def source[A](default: A): CBehaviorSource[A] =

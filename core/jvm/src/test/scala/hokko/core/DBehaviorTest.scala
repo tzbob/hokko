@@ -72,7 +72,7 @@ class DBehaviorTest extends FunSuite with FRPSuite with Checkers {
     val b1      = DBehavior.constant(5)
     val b2      = DBehavior.constant(3)
     val src     = Event.source[Int]
-    val snapped = b1.map2(b2)(_ + _).snapshotWith(src)(_ + _)
+    val snapped = b1.map2(b2)(_ + _).snapshotWith(src: Event[Int])(_ + _)
 
     check { (ints: List[Int]) =>
       val occs = mkOccurrences(snapped) { implicit engine =>
@@ -97,6 +97,19 @@ class DBehaviorTest extends FunSuite with FRPSuite with Checkers {
       true
     }
 
+  }
+
+  test("DBehaviors can have forward references through delays") {
+
+    object Test {
+      val delayed              = DBehavior.delayed(test)
+      val snapped              = delayed.snapshotWith(DBehavior.constant(10))(_ + _)
+      val mapped               = snapped.map2(DBehavior.constant(5))(_ + _)
+      val test: DBehavior[Int] = src.fold(0)(_ + _).toDBehavior
+    }
+
+    assert(Test.snapped.init === 10)
+    assert(Test.mapped.init === 15)
   }
 
 //  test("DBehaviors can be defined recursively through delay with objects") {

@@ -2,17 +2,17 @@ package hokko.syntax
 
 import hokko.core.tc.Snapshottable
 
-trait SnapshottableSyntax[Ev[_], Beh[_]] {
-  implicit def syntaxSnapshottable[A](b: Beh[A])(
-      implicit ev: Snapshottable[Beh, Ev]): SnapshottableOps[Beh, Ev, A] =
-    new SnapshottableOps[Beh, Ev, A](b)
+trait SnapshottableSyntax[Beh[_]] {
+  implicit def syntaxSnapshottable[A](b: Beh[A]): SnapshottableOps[Beh, A] =
+    new SnapshottableOps[Beh, A](b)
 }
 
-final class SnapshottableOps[Beh[_], Ev[_], A](b: Beh[A])(
-    implicit ev: Snapshottable[Beh, Ev]) {
-  def snapshotWith[B, C](e: Ev[B])(f: (A, B) => C): Ev[C] =
+final class SnapshottableOps[Beh[_], A](b: Beh[A]) {
+  def snapshotWith[B, C, Ev[_]](e: Ev[B])(f: (A, B) => C)(
+      implicit
+      ev: Snapshottable[Beh, Ev]): Ev[C] =
     ev.snapshotWith(b, e)(f)
 
-  def sampledBy(e: Ev[_]): Ev[A] =
+  def sampledBy[Ev[_]](e: Ev[_])(implicit ev: Snapshottable[Beh, Ev]): Ev[A] =
     ev.sampledBy(b, e)
 }

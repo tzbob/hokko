@@ -13,6 +13,7 @@ trait DBehavior[A] extends Primitive[A] {
 
   def toCBehavior[AA >: A]: CBehavior[A] = new CBehavior[A] {
     override private[core] val node: Pull[A] = DBehavior.this.node
+    val initial: Thunk[A]                    = Thunk.eager(DBehavior.this.init)
   }
 
   def toIBehavior[DeltaA](diff: (A, A) => DeltaA)(
@@ -32,7 +33,7 @@ object DBehavior
     extends ApplicativeSyntax
     with ApplySyntax
     with FunctorSyntax
-    with SnapshottableSyntax[Event, DBehavior]
+    with SnapshottableSyntax[DBehavior]
     with LazyLogging {
   implicit val hokkoDBehaviorInstances
     : tc.Snapshottable[DBehavior, Event] with Applicative[DBehavior] =
@@ -70,7 +71,10 @@ object DBehavior
         Thunk.eager(context.getState(state).getOrElse(target.init))
     }
 
-    new CBehavior[A] { override private[core] val node = pull }
+    new CBehavior[A] {
+      override private[core] val node = pull
+      val initial: Thunk[A]           = Thunk(target.init)
+    }
   }
 
   // Convenience traits stacked in the right order
@@ -80,25 +84,42 @@ object DBehavior
   }
   private[core] trait PullStatePush[A] extends PushState[A] with Pull[A]
 
-  private def fromNode[A](initial: A, push: Push[A], pull: Pull[A]) =
+  private[core] def fromNode[A](initial: => A, n: => Push[A] with Pull[A]) =
     new DBehavior[A] {
-      val init              = initial
-      val node              = pull
-      val changes: Event[A] = Event.fromNode(push)
-    }
-
-  private def fromNode[A](initial: A, n: Push[A] with Pull[A]) =
-    new DBehavior[A] {
-      val init              = initial
-      val node              = n
-      val changes: Event[A] = Event.fromNode(n)
+      lazy val init         = initial
+      lazy val node              = n
+      lazy val changes: Event[A] = Event.fromNode(n)
     }
 
   // primitive node implementations
   private case class ConstantNode[A](init: A) extends Push[A] with Pull[A] {
     val dependencies                           = List.empty
     def pulse(context: TickContext): Option[A] = None
-    def thunk(context: TickContext): Thunk[A]  = Thunk.eager(init)
+    def thunk(context: TickContext): Thunk[A]  = Thunk(init)
+  }
+
+  private[core] case class Snapshot[A, B, C](
+      cb: CBehavior[A],
+      db: DBehavior[B],
+      f: (A, B) => C
+  ) extends PullStatePush[C] {
+    val dependencies: List[Node[_]] = List(cb.node, db.node, db.changes().node)
+    def pulse(context: TickContext): Option[C] = {
+      context.getPulse(db.changes.node).map { p =>
+        val dbT = context.getThunk(db.node).get
+        val cbT = context.getThunk(cb.node).get
+
+        val thunk = for {
+          a <- cbT
+          b <- dbT
+        } yield f(a, b)
+
+        thunk.force
+      }
+    }
+
+    def thunk(context: TickContext): Thunk[C] =
+      Thunk.eager(context.getPulse(this).get)
   }
 
   private case class ReverseApply[A, B](

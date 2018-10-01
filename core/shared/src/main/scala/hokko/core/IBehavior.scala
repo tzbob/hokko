@@ -2,7 +2,7 @@ package hokko.core
 
 import cats.data.Ior
 import hokko.core.tc.Snapshottable
-import hokko.syntax.SnapshottableSyntax
+import hokko.syntax.{SnapshottableOps, SnapshottableSyntax}
 
 trait IBehavior[+A, +DeltaA] extends Primitive[A] {
   val initial: A
@@ -63,8 +63,8 @@ trait IBehavior[+A, +DeltaA] extends Primitive[A] {
 object IBehavior {
   implicit def syntaxSnapshottable[A, DA](b: IBehavior[A, DA])(
       implicit ev: Snapshottable[IBehavior[?, DA], Event])
-    : SnapshottableOps[IBehavior[?, DA], Event, A] =
-    new SnapshottableOps[IBehavior[?, DA], Event, A](b)
+    : SnapshottableOps[IBehavior[?, DA], A] =
+    new SnapshottableOps[IBehavior[?, DA], A](b)
 
   implicit def hokkoIBehaviorInstances[D]
     : tc.Snapshottable[IBehavior[?, D], Event] =
