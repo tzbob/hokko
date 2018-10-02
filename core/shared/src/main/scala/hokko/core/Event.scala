@@ -7,8 +7,8 @@ import hokko.syntax.EventSyntax
 sealed trait Event[+A] extends Primitive[A] {
   override private[core] val node: Push[A]
 
-  def resetFold[B](resetter: Event[B])(init: B)(
-      f: (B, A) => B): IBehavior[B, A] =
+  def resetFold[B, AA >: A](resetter: Event[B])(init: B)(
+      f: (B, AA) => B): IBehavior[B, AA] =
     IBehavior.resetFolded(this, resetter, init, f)
 }
 

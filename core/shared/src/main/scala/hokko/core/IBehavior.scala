@@ -4,8 +4,9 @@ import cats.data.Ior
 import hokko.core.tc.Snapshottable
 import hokko.syntax.{SnapshottableOps, SnapshottableSyntax}
 
-trait IBehavior[+A, +DeltaA] extends Primitive[A] {
+trait IBehavior[A, DeltaA] extends Primitive[A] {
   val initial: A
+  val accumulator: (A, DeltaA) => A
   override private[core] val node: Pull[A]
 
   def changes: Event[A]
@@ -84,10 +85,11 @@ object IBehavior {
                                       f: (A, DeltaA) => A) = {
     val foldNode = new FoldNode(foldee, init, f)
     new IBehavior[A, DeltaA] {
-      val initial               = init
-      val node: Pull[A]         = foldNode
-      val changes: Event[A]     = Event.fromNode(foldNode)
-      val deltas: Event[DeltaA] = foldee
+      val initial                       = init
+      val node: Pull[A]                 = foldNode
+      val changes: Event[A]             = Event.fromNode(foldNode)
+      val deltas: Event[DeltaA]         = foldee
+      val accumulator: (A, DeltaA) => A = f
     }
   }
 
@@ -114,10 +116,11 @@ object IBehavior {
                                            f: (A, DeltaA) => A) = {
     val foldNode = ResetFoldNode(foldee, resetter, init, f)
     new IBehavior[A, DeltaA] {
-      val initial               = init
-      val node: Pull[A]         = foldNode
-      val changes: Event[A]     = Event.fromNode(foldNode)
-      val deltas: Event[DeltaA] = foldee
+      val initial                       = init
+      val node: Pull[A]                 = foldNode
+      val changes: Event[A]             = Event.fromNode(foldNode)
+      val deltas: Event[DeltaA]         = foldee
+      val accumulator: (A, DeltaA) => A = f
     }
   }
 
