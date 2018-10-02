@@ -82,12 +82,17 @@ class CBehaviorTest extends FunSuite with FRPSuite with Checkers {
 
     check { (ints: List[Int]) =>
       assert(snapped.init === 0)
-      val occs = mkOccurrences(snapped.changes) { implicit engine =>
-        ints.foreach { i =>
-          param = i
-          engine.fire(List(src -> i))
+      val occs =
+        mkOccurrencesWithDependencies(snapped.changes)(snapped.toCBehavior) {
+          implicit
+          engine =>
+            assert(engine.askCurrentValues()(snapped.toCBehavior).get === 0)
+
+            ints.foreach { i =>
+              param = i
+              engine.fire(List(src -> i))
+            }
         }
-      }
       occs == ints.map(_ * 2)
     }
   }

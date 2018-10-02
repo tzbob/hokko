@@ -86,7 +86,7 @@ object DBehavior
 
   private[core] def fromNode[A](initial: => A, n: => Push[A] with Pull[A]) =
     new DBehavior[A] {
-      lazy val init         = initial
+      lazy val init              = initial
       lazy val node              = n
       lazy val changes: Event[A] = Event.fromNode(n)
     }
@@ -119,7 +119,10 @@ object DBehavior
     }
 
     def thunk(context: TickContext): Thunk[C] =
-      Thunk.eager(context.getPulse(this).get)
+      context
+        .getState(this)
+        .map(Thunk.eager)
+        .getOrElse(cb.initial.map(a => f(a, db.init)))
   }
 
   private case class ReverseApply[A, B](
