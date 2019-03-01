@@ -22,9 +22,15 @@ object EventSource {
   }
 }
 
-object Event extends EventSyntax[Event, IBehavior] with FunctorSyntax {
-  implicit val hokkoEventInstances = new tc.Event[Event, IBehavior] {
+object Event
+    extends EventSyntax[Event, DBehavior, IBehavior]
+    with FunctorSyntax {
+  implicit val hokkoEventInstances = new tc.Event[Event, DBehavior, IBehavior] {
     override def fold[A, DeltaA](ev: Event[DeltaA], initial: A)(
+        f: (A, DeltaA) => A): DBehavior[A] =
+      foldI(ev, initial)(f).toDBehavior
+
+    override def foldI[A, DeltaA](ev: Event[DeltaA], initial: A)(
         f: (A, DeltaA) => A): IBehavior[A, DeltaA] =
       IBehavior.folded(ev, initial, f)
 

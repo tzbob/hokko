@@ -12,7 +12,6 @@ class DBehaviorTest extends FunSuite with FRPSuite with Checkers {
     .fold(0) { (acc, n) =>
       n
     }
-    .toDBehavior
 
   test("Constant DBehaviors return constants and don't have occurences") {
     val const = DBehavior.constant(5)

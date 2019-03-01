@@ -2,8 +2,11 @@ package hokko.core.tc
 
 import cats.Functor
 
-trait Event[Ev[_], IBeh[_, _]] extends Functor[Ev] {
+trait Event[Ev[_], Beh[_], IBeh[_, _]] extends Functor[Ev] {
   def fold[A, DeltaA](ev: Ev[DeltaA], initial: A)(
+    f: (A, DeltaA) => A): Beh[A]
+
+  def foldI[A, DeltaA](ev: Ev[DeltaA], initial: A)(
       f: (A, DeltaA) => A): IBeh[A, DeltaA]
 
   def unionWith[A](a: Ev[A])(b: Ev[A])(f: (A, A) => A): Ev[A]
@@ -12,7 +15,7 @@ trait Event[Ev[_], IBeh[_, _]] extends Functor[Ev] {
 
   // Derived Ops
 
-  def hold[A](ev: Ev[A], initial: A): IBeh[A, A] =
+  def hold[A](ev: Ev[A], initial: A): Beh[A] =
     fold(ev, initial) { (_, n) =>
       n
     }

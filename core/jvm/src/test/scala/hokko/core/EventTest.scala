@@ -10,7 +10,7 @@ import scala.language.{existentials, reflectiveCalls}
 class EventTest extends FunSuite with FRPSuite with Checkers {
   test("Events can be folded") {
     val src = Event.source[Int]
-    val beh = src.fold(0)(_ + _).toDBehavior.toCBehavior
+    val beh = src.fold(0)(_ + _).toCBehavior
     check { (ints: List[Int]) =>
       val engine = Engine.compile(beh)
       fireAll(src, ints)(engine)
@@ -88,7 +88,7 @@ class EventTest extends FunSuite with FRPSuite with Checkers {
   test("BUG: Events should not fire when engine is fired empty") {
     var counter = 0
     val src = Event.source[Int]
-    val count: IBehavior[Int, Int] = src.fold(0) { (a, b) =>
+    val count: IBehavior[Int, Int] = src.foldI(0) { (a, b) =>
       counter += 1
       a + b
     }

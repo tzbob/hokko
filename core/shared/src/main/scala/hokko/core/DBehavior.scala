@@ -32,7 +32,7 @@ trait DBehavior[A] extends Primitive[A] {
     }
 
     val diffs = memorizedDeltas.changes.collect(_._1)
-    diffs.fold(init)(patch)
+    diffs.foldI(init)(patch)
   }
 
 }

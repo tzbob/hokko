@@ -3,8 +3,7 @@ resolvers += "Sonatype OSS Snapshots" at
 
 organization in ThisBuild := "be.tzbob"
 scalaVersion in ThisBuild := "2.12.4"
-version in ThisBuild := "0.5.0"
-isSnapshot in ThisBuild := true
+version in ThisBuild := "0.6.0"
 
 scalacOptions in ThisBuild ++= Seq(
   "-encoding",

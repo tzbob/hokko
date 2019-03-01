@@ -49,7 +49,7 @@ trait SeqIBehaviorOps {
       // 1. start with (initial value, None)
       val ib: IBehavior[(Repr[A0], Option[Updated[A0, Repr]]),
                         Ior[Delta[A0, Repr[A0]], (Int, A0)]] =
-        combined.fold(rep.initial -> Option.empty[Updated[A0, Repr]]) {
+        combined.foldI(rep.initial -> Option.empty[Updated[A0, Repr]]) {
           (acc, ior) =>
             ior match {
               // 2. delta (left) => (apply to previous value, None)

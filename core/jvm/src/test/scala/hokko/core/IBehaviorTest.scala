@@ -16,7 +16,7 @@ class IBehaviorTest extends FunSuite with FRPSuite with Checkers {
 
   test("IBehaviors incrementally map to others") {
     val src                         = Event.source[Int]
-    val bParam: IBehavior[Int, Int] = src.fold(0)(_ + _)
+    val bParam: IBehavior[Int, Int] = src.foldI(0)(_ + _)
 
     val incrementalTimesTwo = bParam.incMap(_ * 2)(_ * 2)(_ + _)
 
@@ -39,7 +39,7 @@ class IBehaviorTest extends FunSuite with FRPSuite with Checkers {
     var counter = 0
 
     val src = Event.source[Int]
-    val count: IBehavior[Int, Int] = src.fold(0) { (a, b) =>
+    val count: IBehavior[Int, Int] = src.foldI(0) { (a, b) =>
       counter += 1
       a + b
     }

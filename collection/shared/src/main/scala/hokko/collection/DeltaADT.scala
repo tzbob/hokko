@@ -25,7 +25,7 @@ object Delta {
   def foldApply[A0, Repr](
       traversable: Repr,
       newDeltas: Event[Delta[A0, Repr]]): IBehavior[Repr, Delta[A0, Repr]] =
-    newDeltas.fold(traversable) { (acc, delta) =>
+    newDeltas.foldI(traversable) { (acc, delta) =>
       delta(acc)
     }
 

@@ -77,7 +77,7 @@ class CBehaviorTest extends FunSuite with FRPSuite with Checkers {
     var param   = 0
     val bParam  = CBehavior.fromPoll(() => param)
     val src     = Event.source[Int]
-    val b       = src.fold(0)((_, n) => n).toDBehavior
+    val b       = src.fold(0)((_, n) => n)
     val snapped = bParam.snapshotWith(b)(_ + _)
 
     check { (ints: List[Int]) =>

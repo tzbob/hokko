@@ -16,7 +16,7 @@ trait IBehavior[A, DeltaA] extends Primitive[A] {
       accumulator: (B, DeltaB) => B): IBehavior[B, DeltaB] = {
     val newDeltas  = deltas.map(fb)
     val newInitial = fa(initial)
-    newDeltas.fold(newInitial)(accumulator)
+    newDeltas.foldI(newInitial)(accumulator)
   }
 
   // TODO: this should be incMap
@@ -24,7 +24,7 @@ trait IBehavior[A, DeltaA] extends Primitive[A] {
       accumulator: (B, DeltaB) => B): IBehavior[B, DeltaB] = {
     val newDeltas  = this.snapshotWith(this.deltas)(fb)
     val newInitial = fa(initial)
-    newDeltas.fold(newInitial)(accumulator)
+    newDeltas.foldI(newInitial)(accumulator)
   }
 
   def incMap2[B, DeltaB, C, DeltaC](b: IBehavior[B, DeltaB])(
@@ -49,7 +49,7 @@ trait IBehavior[A, DeltaA] extends Primitive[A] {
       tupled.collect(deltaFun.tupled)
     }
 
-    newDelta.fold(newInit)(foldFun)
+    newDelta.foldI(newInit)(foldFun)
   }
 
   def toDBehavior[AA >: A]: DBehavior[AA] = new DBehavior[AA] {
@@ -76,7 +76,7 @@ object IBehavior {
     }
 
   def constant[A, DeltaA](init: A): IBehavior[A, DeltaA] =
-    Event.empty[DeltaA].fold(init) { (acc, _) =>
+    Event.empty[DeltaA].foldI(init) { (acc, _) =>
       acc
     }
 
