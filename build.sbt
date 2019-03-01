@@ -3,7 +3,6 @@ resolvers += "Sonatype OSS Snapshots" at
 
 organization in ThisBuild := "be.tzbob"
 scalaVersion in ThisBuild := "2.12.4"
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
 version in ThisBuild := "0.4.9-SNAPSHOT"
 isSnapshot in ThisBuild := true
 
@@ -16,7 +15,6 @@ scalacOptions in ThisBuild ++= Seq(
   "-Yno-adapted-args",
   "-Ywarn-dead-code",
   "-Ywarn-numeric-widen",
-  "-Ywarn-value-discard",
   "-Xfuture",
   "-language:higherKinds",
   "-language:implicitConversions",

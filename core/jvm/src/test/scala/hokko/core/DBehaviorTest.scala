@@ -98,46 +98,4 @@ class DBehaviorTest extends FunSuite with FRPSuite with Checkers {
     }
 
   }
-
-  test("DBehaviors can have forward references through delays") {
-
-    object Test {
-      val delayed              = DBehavior.delayed(test)
-      val snapped              = delayed.snapshotWith(DBehavior.constant(10))(_ + _)
-      val mapped               = snapped.map2(DBehavior.constant(5))(_ + _)
-      val test: DBehavior[Int] = src.fold(0)(_ + _).toDBehavior
-    }
-
-    assert(Test.snapped.init === 10)
-    assert(Test.mapped.init === 15)
-  }
-
-//  test("DBehaviors can be defined recursively through delay with objects") {
-//    object Test {
-//      val delayedInts: CBehavior[Int] = DBehavior.delayed(player, 100)
-//      val delayedDB = delayedInts
-//        .sampledBy(Event.empty)
-//        .hold(0)
-//        .toDBehavior
-//      val player = intDBehavior.map2(delayedDB)(_ + _)
-//    }
-//
-//    val player = Test.player
-//
-//    def checkForList(ints: List[Int]) = ints.foldLeft(100)(_ + _)
-//
-//    check { (ints: List[Int]) =>
-//      val occs = mkOccurrences(player.changes) { implicit engine =>
-//        // after propagation the value should be computed with the last
-//        // result from propagation (that is, delayed and not delayed are equal)
-//        val checkLast = checkForList(ints)
-//        val value     = currentValues(Test.delayedInts).get
-//        assert(value === checkLast)
-//      }
-//
-//      val correctOccs =
-//        ints.inits.filterNot(_.isEmpty).toList.reverse.map(checkForList)
-//      occs === correctOccs
-//    }
-//  }
 }

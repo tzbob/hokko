@@ -16,6 +16,14 @@ trait DBehavior[A] extends Primitive[A] {
     val initial: Thunk[A]                    = Thunk.eager(DBehavior.this.init)
   }
 
+  /**
+  *
+    * @param diff computes difference, first argument is new value, second is
+    *             old
+    * @param patch
+    * @tparam DeltaA
+    * @return
+    */
   def toIBehavior[DeltaA](diff: (A, A) => DeltaA)(
       patch: (A, DeltaA) => A): IBehavior[A, DeltaA] = {
     val memorizedDeltas = changes.fold(Option.empty[DeltaA] -> init) {
