@@ -81,22 +81,51 @@ class IBehaviorTest extends FunSuite with FRPSuite with Checkers {
           engine =>
             // Tests resetting value
             fireAll(resetter, ints)
-            val currentValues = engine.askCurrentValues()
-            val resetResult   = currentValues(cBehavior)
 
-            val isValueReset = resetResult.get === initAfterReset
+            def currentValue() = engine.askCurrentValues()(cBehavior)
+            assert(currentValue().get === initAfterReset)
 
             // Tests if fold starts from reset value
             fireAll(source, ints)
-            val foldAfterResetResult = engine.askCurrentValues()(cBehavior)
-
-            val doesFoldStartFromReset = resetResult.get === totalSum
-
-            isValueReset && doesFoldStartFromReset
+            assert(currentValue().get === totalSum)
         }
 
       val changes = ints.scan(initAfterReset)(_ + _).drop(1)
       occs === changes
     }
   }
+
+  test("Behaviors dependent on reset IBehaviors change properly") {
+    check { (ints: List[Int]) =>
+      val init     = 5
+      val source   = Event.source[Int]
+      val resetter = Event.source[Int]
+      val reset    = source.resetFold(resetter)(init)(_ + _)
+
+      val plus10   = reset.toDBehavior.map(_ + 10)
+      val plus10cb = plus10.toCBehavior
+
+      // start from 10 (reset) and apply _ + 10
+      val totalSum = (10 :: ints).sum + 10
+
+      val occs = mkOccurrencesWithDependencies(plus10.changes(
+
+      ))(plus10cb) {
+        implicit
+        engine =>
+          // reset to 10
+          fireAll(resetter, List(10))
+          def currentValue() = engine.askCurrentValues()(plus10cb)
+          // check if the plus10 value starts from 10 + 10
+          assert(currentValue().get === 10 + 10)
+
+          // Tests if fold starts from reset value
+          fireAll(source, ints)
+          assert(currentValue().get === totalSum)
+      }
+
+      occs === ints.scan(10)(_ + _).drop(1).map(_ + 10)
+    }
+  }
+
 }

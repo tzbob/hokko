@@ -17,7 +17,7 @@ trait DBehavior[A] extends Primitive[A] {
   }
 
   /**
-  *
+    *
     * @param diff computes difference, first argument is new value, second is
     *             old
     * @param patch
@@ -90,6 +90,9 @@ object DBehavior
     def state(context: TickContext): Option[A] =
       context.getPulse(this)
   }
+
+  private[core] trait PullPush[A] extends Push[A] with Pull[A]
+
   private[core] trait PullStatePush[A] extends PushState[A] with Pull[A]
 
   private[core] def fromNode[A](initial: => A, n: => Push[A] with Pull[A]) =
@@ -110,33 +113,35 @@ object DBehavior
       cb: CBehavior[A],
       db: DBehavior[B],
       f: (A, B) => C
-  ) extends PullStatePush[C] {
+  ) extends PullPush[C] {
     val dependencies: List[Node[_]] = List(cb.node, db.node, db.changes().node)
+
+    def computeThunkFromDependencies(context: TickContext) = {
+      val dbT = context.getThunk(db.node).get
+      val cbT = context.getThunk(cb.node).get
+
+      for {
+        a <- cbT
+        b <- dbT
+      } yield f(a, b)
+    }
+
     def pulse(context: TickContext): Option[C] = {
       context.getPulse(db.changes.node).map { p =>
-        val dbT = context.getThunk(db.node).get
-        val cbT = context.getThunk(cb.node).get
-
-        val thunk = for {
-          a <- cbT
-          b <- dbT
-        } yield f(a, b)
-
-        thunk.force
+        computeThunkFromDependencies(context).force
       }
     }
 
-    def thunk(context: TickContext): Thunk[C] =
-      context
-        .getState(this)
-        .map(Thunk.eager)
-        .getOrElse(cb.initial.map(a => f(a, db.init)))
+    def thunk(context: TickContext): Thunk[C] = {
+      val pulse = context.getPulse(this)
+      pulse.map(Thunk.eager).getOrElse(computeThunkFromDependencies(context))
+    }
   }
 
   private case class ReverseApply[A, B](
       apParam: DBehavior[A],
       apFun: DBehavior[A => B]
-  ) extends PullStatePush[B] {
+  ) extends PullPush[B] {
     val dependencies = List(apParam.node, apFun.node)
 
     def pulse(context: TickContext): Option[B] = {
@@ -161,8 +166,12 @@ object DBehavior
       }
     }
 
-    def thunk(c: TickContext): Thunk[B] =
-      Thunk.eager(c.getState(this).getOrElse(apFun.init(apParam.init)))
+    def thunk(c: TickContext): Thunk[B] = {
+      for {
+        a <- c.getThunk(apParam.node).get
+        f <- c.getThunk(apFun.node).get
+      } yield f(a)
+    }
   }
 
 }

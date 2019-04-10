@@ -74,19 +74,21 @@ class CBehaviorTest extends FunSuite with FRPSuite with Checkers {
   }
 
   test("Behaviors can be snapshot by discrete behaviors") {
-    var param   = 0
-    val bParam  = CBehavior.fromPoll(() => param)
-    val src     = Event.source[Int]
-    val b       = src.fold(0)((_, n) => n)
-    val snapped = bParam.snapshotWith(b)(_ + _)
-
     check { (ints: List[Int]) =>
-      assert(snapped.init === 0)
+      var param   = 20
+      val bParam  = CBehavior.fromPoll(() => param)
+      val src     = Event.source[Int]
+      val b       = src.fold(0)((_, n) => n)
+      val snapped = bParam.snapshotWith(b)(_ + _)
+
+      assert(snapped.init === 20)
       val occs =
         mkOccurrencesWithDependencies(snapped.changes)(snapped.toCBehavior) {
           implicit
           engine =>
-            assert(engine.askCurrentValues()(snapped.toCBehavior).get === 0)
+            assert(engine.askCurrentValues()(b.toCBehavior).get === 0)
+            assert(engine.askCurrentValues()(bParam).get === 20)
+            assert(engine.askCurrentValues()(snapped.toCBehavior).get === 20)
 
             ints.foreach { i =>
               param = i
